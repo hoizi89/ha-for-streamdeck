@@ -12,202 +12,210 @@
 </style>
 </head>
 <body>
-<h3 data-i18n="h">Home Assistant Entität</h3>
-<div class="row" style="justify-content:flex-end;margin:0"><a href="#" id="connToggle" data-i18n="conn" style="color:#6aa0e0;text-decoration:none;font-size:11px">⚙ Verbindung</a></div>
+<h3 data-i18n="h"></h3>
+<div class="row" style="justify-content:flex-end;margin:0"><a href="#" id="connToggle" data-i18n="conn" style="color:#6aa0e0;text-decoration:none;font-size:11px"></a></div>
 <div id="connBox">
-  <div class="row"><label data-i18n="url">Server-URL</label><input id="url" placeholder="http://homeassistant.local:8123"></div>
-  <div class="row"><label data-i18n="token">Token</label><input id="token" type="password"></div>
-  <div class="hint" data-i18n="tokenHint">Nur einmal nötig – wird global gespeichert und bei neuen Kacheln vorausgefüllt.</div>
-  <div class="row"><label data-i18n="bg">Hintergrund</label>
+  <div class="row"><label data-i18n="url"></label><input id="url" placeholder="http://homeassistant.local:8123"></div>
+  <div class="row"><label data-i18n="token"></label><input id="token" type="password"></div>
+  <div class="hint" data-i18n="tokenHint"></div>
+  <div class="row"><label data-i18n="bg"></label>
     <select id="bgtheme">
-      <option value="" data-i18n="bg_default">Standard (Blaugrau)</option>
-      <option value="black" data-i18n="bg_black">Schwarz</option>
-      <option value="gray" data-i18n="bg_gray">Grau</option>
-      <option value="blue" data-i18n="bg_blue">Blau</option>
-      <option value="green" data-i18n="bg_green">Grün</option>
-      <option value="purple" data-i18n="bg_purple">Lila</option>
-      <option value="teal" data-i18n="bg_teal">Türkis</option>
+      <option value="" data-i18n="bg_default"></option>
+      <option value="black" data-i18n="bg_black"></option>
+      <option value="gray" data-i18n="bg_gray"></option>
+      <option value="blue" data-i18n="bg_blue"></option>
+      <option value="green" data-i18n="bg_green"></option>
+      <option value="purple" data-i18n="bg_purple"></option>
+      <option value="teal" data-i18n="bg_teal"></option>
     </select>
   </div>
-  <div class="hint" data-i18n="bgHint">Standard-Hintergrund für alle Kacheln (pro Kachel unten überschreibbar).</div>
-  <div class="row"><label data-i18n="acc">Aktiv-Farbe</label>
+  <div class="hint" data-i18n="bgHint"></div>
+  <div class="row"><label data-i18n="acc"></label>
     <select id="accent">
-      <option value="" data-i18n="ac_green">Grün</option>
-      <option value="blue" data-i18n="ac_blue">Blau</option>
-      <option value="purple" data-i18n="ac_purple">Lila</option>
-      <option value="orange" data-i18n="ac_orange">Orange</option>
-      <option value="red" data-i18n="ac_red">Rot</option>
-      <option value="teal" data-i18n="ac_teal">Türkis</option>
-      <option value="pink" data-i18n="ac_pink">Pink</option>
+      <option value="" data-i18n="ac_green"></option>
+      <option value="blue" data-i18n="ac_blue"></option>
+      <option value="purple" data-i18n="ac_purple"></option>
+      <option value="orange" data-i18n="ac_orange"></option>
+      <option value="red" data-i18n="ac_red"></option>
+      <option value="teal" data-i18n="ac_teal"></option>
+      <option value="pink" data-i18n="ac_pink"></option>
     </select>
   </div>
-  <div class="hint" data-i18n="accHint">Farbe wenn Media läuft (gilt für alle Kacheln).</div>
+  <div class="hint" data-i18n="accHint"></div>
 </div>
-<div class="row" id="entitySummary" style="display:none"><label data-i18n="entity">Entität</label><span id="entityName" style="flex:1;padding:5px 0;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span><a href="#" id="entityEdit" data-i18n="change" style="color:#6aa0e0;text-decoration:none;font-size:11px;margin-left:8px">✎ Ändern</a></div>
+<div class="row" id="entitySummary" style="display:none"><label data-i18n="entity"></label><span id="entityName" style="flex:1;padding:5px 0;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span><a href="#" id="entityEdit" data-i18n="change" style="color:#6aa0e0;text-decoration:none;font-size:11px;margin-left:8px"></a></div>
 <div id="entityBox">
-<div class="row"><label data-i18n="filter">Filter</label>
+<div class="row"><label data-i18n="filter"></label>
   <select id="domain">
-    <option value="" data-i18n="d_all">Alle</option>
-    <option value="light." data-i18n="d_light">Licht</option>
-    <option value="switch." data-i18n="d_switch">Schalter</option>
-    <option value="lock." data-i18n="d_lock">Schlösser</option>
-    <option value="climate." data-i18n="d_climate">Klima</option>
-    <option value="cover." data-i18n="d_cover">Rollos</option>
-    <option value="vacuum." data-i18n="d_vacuum">Staubsauger</option>
-    <option value="media_player." data-i18n="d_media">Media Player</option>
-    <option value="camera." data-i18n="d_camera">Kameras</option>
-    <option value="weather." data-i18n="d_weather">Wetter</option>
-    <option value="person." data-i18n="d_person">Personen</option>
-    <option value="sensor." data-i18n="d_sensor">Sensoren</option>
-    <option value="binary_sensor." data-i18n="d_binary">Binärsensoren</option>
-    <option value="scene." data-i18n="d_scene">Szenen</option>
-    <option value="script." data-i18n="d_script">Skripte</option>
-    <option value="button." data-i18n="d_button">Buttons</option>
+    <option value="" data-i18n="d_all"></option>
+    <option value="light." data-i18n="d_light"></option>
+    <option value="switch." data-i18n="d_switch"></option>
+    <option value="lock." data-i18n="d_lock"></option>
+    <option value="climate." data-i18n="d_climate"></option>
+    <option value="cover." data-i18n="d_cover"></option>
+    <option value="vacuum." data-i18n="d_vacuum"></option>
+    <option value="media_player." data-i18n="d_media"></option>
+    <option value="camera." data-i18n="d_camera"></option>
+    <option value="weather." data-i18n="d_weather"></option>
+    <option value="person." data-i18n="d_person"></option>
+    <option value="sensor." data-i18n="d_sensor"></option>
+    <option value="binary_sensor." data-i18n="d_binary"></option>
+    <option value="scene." data-i18n="d_scene"></option>
+    <option value="script." data-i18n="d_script"></option>
+    <option value="button." data-i18n="d_button"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="search">Suche</label><input id="search" placeholder="tippen zum Filtern…"></div>
-<div class="row"><label data-i18n="entity">Entität</label><select id="entity" size="9" style="line-height:1.5"></select></div>
+<div class="row"><label data-i18n="search"></label><input id="search" placeholder="tippen zum Filtern…"></div>
+<div class="row"><label data-i18n="entity"></label><select id="entity" size="9" style="line-height:1.5"></select></div>
 </div>
-<div class="row"><label data-i18n="display">Darstellung</label>
+<div class="row"><label data-i18n="display"></label>
   <select id="display">
-    <option value="" data-i18n="disp_num">Wert</option>
-    <option value="light" data-i18n="disp_light">Licht/Schalter</option>
-    <option value="lock" data-i18n="disp_lock">Schloss</option>
-    <option value="climate" data-i18n="disp_climate">Klima/Thermostat</option>
-    <option value="cover" data-i18n="disp_cover">Rollo</option>
-    <option value="vacuum" data-i18n="disp_vacuum">Staubsauger</option>
-    <option value="camera" data-i18n="disp_camera">Kamera</option>
-    <option value="weather" data-i18n="disp_weather">Wetter</option>
-    <option value="presence" data-i18n="disp_presence">Anwesenheit</option>
-    <option value="battery" data-i18n="disp_bat">Batterie</option>
-    <option value="bar" data-i18n="disp_bar">Balken</option>
-    <option value="action" data-i18n="disp_action">Aktion / Skript / Button</option>
+    <option value="" data-i18n="disp_num"></option>
+    <option value="light" data-i18n="disp_light"></option>
+    <option value="lock" data-i18n="disp_lock"></option>
+    <option value="climate" data-i18n="disp_climate"></option>
+    <option value="cover" data-i18n="disp_cover"></option>
+    <option value="vacuum" data-i18n="disp_vacuum"></option>
+    <option value="camera" data-i18n="disp_camera"></option>
+    <option value="weather" data-i18n="disp_weather"></option>
+    <option value="presence" data-i18n="disp_presence"></option>
+    <option value="battery" data-i18n="disp_bat"></option>
+    <option value="bar" data-i18n="disp_bar"></option>
+    <option value="trend" data-i18n="disp_trend"></option>
+    <option value="action" data-i18n="disp_action"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="name">Titel</label><input id="title" placeholder="Kurzname, z.B. Mails"></div>
-<div class="row"><label data-i18n="namesize">Namensgröße</label>
+<div class="row"><label data-i18n="name"></label><input id="title" placeholder="Kurzname, z.B. Mails"></div>
+<div class="row"><label data-i18n="namesize"></label>
   <select id="namesize">
-    <option value="" data-i18n="ns_auto">Automatisch</option>
-    <option value="S" data-i18n="ns_s">Klein</option>
-    <option value="L" data-i18n="ns_l">Groß</option>
-    <option value="off" data-i18n="ns_off">Aus (kein Name)</option>
+    <option value="" data-i18n="ns_auto"></option>
+    <option value="S" data-i18n="ns_s"></option>
+    <option value="L" data-i18n="ns_l"></option>
+    <option value="off" data-i18n="ns_off"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="keybg">Kachel-Farbe</label>
+<div class="row"><label data-i18n="keybg"></label>
   <select id="keybg">
-    <option value="" data-i18n="kb_global">Wie global</option>
-    <option value="black" data-i18n="bg_black">Schwarz</option>
-    <option value="gray" data-i18n="bg_gray">Grau</option>
-    <option value="blue" data-i18n="bg_blue">Blau</option>
-    <option value="green" data-i18n="bg_green">Grün</option>
-    <option value="purple" data-i18n="bg_purple">Lila</option>
-    <option value="teal" data-i18n="bg_teal">Türkis</option>
+    <option value="" data-i18n="kb_global"></option>
+    <option value="black" data-i18n="bg_black"></option>
+    <option value="gray" data-i18n="bg_gray"></option>
+    <option value="blue" data-i18n="bg_blue"></option>
+    <option value="green" data-i18n="bg_green"></option>
+    <option value="purple" data-i18n="bg_purple"></option>
+    <option value="teal" data-i18n="bg_teal"></option>
   </select>
 </div>
-<div class="hint"><a href="#" id="editGlobalBg" style="color:#6aa0e0;text-decoration:none" data-i18n="kb_hint">Global unter ⚙ Globale Einstellungen</a></div>
-<div class="row"><label data-i18n="lstyle">Licht-Stil</label>
+<div class="hint"><a href="#" id="editGlobalBg" style="color:#6aa0e0;text-decoration:none" data-i18n="kb_hint"></a></div>
+<div class="row"><label data-i18n="lstyle"></label>
   <select id="lightstyle">
-    <option value="bulb" data-i18n="ls_bulb">Glühbirne</option>
-    <option value="icon" data-i18n="ls_icon">HA-Icon</option>
-    <option value="strip" data-i18n="ls_strip">LED-Strip</option>
-    <option value="hexagon" data-i18n="ls_hex">Hexagon</option>
-    <option value="ring" data-i18n="ls_ring">Ring</option>
+    <option value="bulb" data-i18n="ls_bulb"></option>
+    <option value="icon" data-i18n="ls_icon"></option>
+    <option value="strip" data-i18n="ls_strip"></option>
+    <option value="hexagon" data-i18n="ls_hex"></option>
+    <option value="ring" data-i18n="ls_ring"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="oncolor">Farbe wenn an</label>
+<div class="row"><label data-i18n="oncolor"></label>
   <select id="oncolor">
-    <option value="" data-i18n="oc_auto">Lichtfarbe (echt)</option>
-    <option value="accent" data-i18n="oc_accent">Aktiv-Farbe (global)</option>
+    <option value="" data-i18n="oc_auto"></option>
+    <option value="accent" data-i18n="oc_accent"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="lstatus">Status</label>
+<div class="row"><label data-i18n="lstatus"></label>
   <select id="lightlabel">
-    <option value="" data-i18n="lb_auto">Automatisch</option>
-    <option value="brightness" data-i18n="lb_bri">Helligkeit %</option>
-    <option value="onoff" data-i18n="lb_onoff">An / Aus</option>
-    <option value="none" data-i18n="lb_none">Aus (kein Text)</option>
+    <option value="" data-i18n="lb_auto"></option>
+    <option value="brightness" data-i18n="lb_bri"></option>
+    <option value="onoff" data-i18n="lb_onoff"></option>
+    <option value="none" data-i18n="lb_none"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="lpress">Bei Druck</label>
+<div class="row"><label data-i18n="lpress"></label>
   <select id="lightpress">
-    <option value="toggle" data-i18n="lp_toggle">Umschalten</option>
-    <option value="on" data-i18n="lp_on">Einschalten (letzter Zustand)</option>
-    <option value="off" data-i18n="lp_off">Ausschalten</option>
-    <option value="scene" data-i18n="lp_scene">Szene aktivieren</option>
-    <option value="scenetoggle" data-i18n="lp_scenetoggle">Szene / Aus (Umschalten)</option>
-    <option value="scenecycle" data-i18n="lp_scenecycle">Szenen durchschalten</option>
-    <option value="scenehold" data-i18n="lp_scenehold">Szenen: Tippen an/aus · Halten blättert</option>
+    <option value="toggle" data-i18n="lp_toggle"></option>
+    <option value="on" data-i18n="lp_on"></option>
+    <option value="off" data-i18n="lp_off"></option>
+    <option value="scene" data-i18n="lp_scene"></option>
+    <option value="scenetoggle" data-i18n="lp_scenetoggle"></option>
+    <option value="scenecycle" data-i18n="lp_scenecycle"></option>
+    <option value="scenehold" data-i18n="lp_scenehold"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="scene">Szene</label><select id="scene"></select></div>
-<div class="row"><label data-i18n="scene2">Szene 2</label><select id="scene2"></select></div>
-<div class="row"><label data-i18n="scene3">Szene 3</label><select id="scene3"></select></div>
-<div class="row"><label data-i18n="scene4">Szene 4</label><select id="scene4"></select></div>
-<div class="row"><label data-i18n="batorient">Ausrichtung</label>
+<div class="row"><label data-i18n="scene"></label><select id="scene"></select></div>
+<div class="row"><label data-i18n="scene2"></label><select id="scene2"></select></div>
+<div class="row"><label data-i18n="scene3"></label><select id="scene3"></select></div>
+<div class="row"><label data-i18n="scene4"></label><select id="scene4"></select></div>
+<div class="row"><label data-i18n="batorient"></label>
   <select id="batorient">
-    <option value="h" data-i18n="bo_h">Liegend</option>
-    <option value="v" data-i18n="bo_v">Stehend</option>
+    <option value="h" data-i18n="bo_h"></option>
+    <option value="v" data-i18n="bo_v"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="lockpress">Bei Druck</label>
+<div class="row"><label data-i18n="lockpress"></label>
   <select id="lockpress">
-    <option value="toggle" data-i18n="lkp_toggle">Ver-/Entriegeln</option>
-    <option value="lock" data-i18n="lkp_lock">Verriegeln</option>
-    <option value="unlock" data-i18n="lkp_unlock">Entriegeln</option>
-    <option value="open" data-i18n="lkp_open">Öffnen (Falle)</option>
+    <option value="toggle" data-i18n="lkp_toggle"></option>
+    <option value="lock" data-i18n="lkp_lock"></option>
+    <option value="unlock" data-i18n="lkp_unlock"></option>
+    <option value="open" data-i18n="lkp_open"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="lockconfirm">Bestätigung</label>
+<div class="row"><label data-i18n="lockconfirm"></label>
   <select id="lockconfirm">
-    <option value="off" data-i18n="lc_off">Aus (sofort)</option>
-    <option value="double" data-i18n="lc_double">Doppeldruck</option>
-    <option value="hold" data-i18n="lc_hold">Gedrückt halten</option>
+    <option value="off" data-i18n="lc_off"></option>
+    <option value="double" data-i18n="lc_double"></option>
+    <option value="hold" data-i18n="lc_hold"></option>
   </select>
 </div>
-<div class="hint" data-i18n="lockconfirmHint">Nur beim Entriegeln/Öffnen abgefragt – Verriegeln geht immer sofort.</div>
-<div class="row"><label data-i18n="lockoncolor">Farbe verriegelt</label>
+<div class="hint" data-i18n="lockconfirmHint"></div>
+<div class="row"><label data-i18n="lockoncolor"></label>
   <select id="lockoncolor">
-    <option value="" data-i18n="loc_fixed">Grün (fest)</option>
-    <option value="accent" data-i18n="loc_accent">Aktiv-Farbe (global)</option>
+    <option value="" data-i18n="loc_fixed"></option>
+    <option value="accent" data-i18n="loc_accent"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="camrate">Aktualisierung</label>
+<div class="row"><label data-i18n="trendh"></label>
+  <select id="trendhours">
+    <option value="6" data-i18n="th_6"></option>
+    <option value="1" data-i18n="th_1"></option>
+    <option value="24" data-i18n="th_24"></option>
+  </select>
+</div>
+<div class="row"><label data-i18n="camrate"></label>
   <select id="camrate">
-    <option value="2" data-i18n="cr_2">2 s</option>
-    <option value="" data-i18n="cr_4">4 s</option>
-    <option value="10" data-i18n="cr_10">10 s</option>
-    <option value="30" data-i18n="cr_30">30 s</option>
+    <option value="2" data-i18n="cr_2"></option>
+    <option value="" data-i18n="cr_4"></option>
+    <option value="10" data-i18n="cr_10"></option>
+    <option value="30" data-i18n="cr_30"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="vacpress">Bei Druck</label>
+<div class="row"><label data-i18n="vacpress"></label>
   <select id="vacuumpress">
-    <option value="toggle" data-i18n="vp_toggle">Start / Zur Basis</option>
-    <option value="start" data-i18n="vp_start">Start</option>
-    <option value="return" data-i18n="vp_return">Zur Basis</option>
-    <option value="pause" data-i18n="vp_pause">Pause</option>
-    <option value="locate" data-i18n="vp_locate">Sauger suchen</option>
+    <option value="toggle" data-i18n="vp_toggle"></option>
+    <option value="start" data-i18n="vp_start"></option>
+    <option value="return" data-i18n="vp_return"></option>
+    <option value="pause" data-i18n="vp_pause"></option>
+    <option value="locate" data-i18n="vp_locate"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="covpress">Bei Druck</label>
+<div class="row"><label data-i18n="covpress"></label>
   <select id="coverpress">
-    <option value="toggle" data-i18n="cvp_toggle">Auf / Zu</option>
-    <option value="open" data-i18n="cvp_open">Auf</option>
-    <option value="close" data-i18n="cvp_close">Zu</option>
-    <option value="stop" data-i18n="cvp_stop">Stopp</option>
+    <option value="toggle" data-i18n="cvp_toggle"></option>
+    <option value="open" data-i18n="cvp_open"></option>
+    <option value="close" data-i18n="cvp_close"></option>
+    <option value="stop" data-i18n="cvp_stop"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="climpress">Bei Druck</label>
+<div class="row"><label data-i18n="climpress"></label>
   <select id="climatepress">
-    <option value="none" data-i18n="cp_none">Nur Anzeige</option>
-    <option value="warmer" data-i18n="cp_warm">Wärmer (+0,5°)</option>
-    <option value="cooler" data-i18n="cp_cool">Kälter (−0,5°)</option>
-    <option value="toggle" data-i18n="cp_toggle">An / Aus</option>
+    <option value="none" data-i18n="cp_none"></option>
+    <option value="warmer" data-i18n="cp_warm"></option>
+    <option value="cooler" data-i18n="cp_cool"></option>
+    <option value="toggle" data-i18n="cp_toggle"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="icon">Icon</label>
+<div class="row"><label data-i18n="icon"></label>
   <select id="icon">
-    <option value="" data-i18n="ic_auto">Automatisch</option>
-    <option value="NONE" data-i18n="ic_none">— kein —</option>
+    <option value="" data-i18n="ic_auto"></option>
+    <option value="NONE" data-i18n="ic_none"></option>
     <option value="✉">✉  Mail</option>
     <option value="★">★  Stern</option>
     <option value="●">●  Punkt</option>
@@ -224,47 +232,47 @@
     <option value="⚑">⚑  Fahne</option>
   </select>
 </div>
-<div class="row"><label data-i18n="warn1">Stufe 1 ab ≥</label><input id="warn" placeholder="z.B. 1"></div>
-<div class="row"><label data-i18n="c1">Farbe 1</label>
+<div class="row"><label data-i18n="warn1"></label><input id="warn" placeholder="z.B. 1"></div>
+<div class="row"><label data-i18n="c1"></label>
   <select id="color1">
-    <option value="orange" data-i18n="c_orange">Orange</option>
-    <option value="red" data-i18n="c_red">Rot</option>
-    <option value="yellow" data-i18n="c_yellow">Gelb</option>
-    <option value="green" data-i18n="c_green">Grün</option>
-    <option value="blue" data-i18n="c_blue">Blau</option>
-    <option value="purple" data-i18n="c_purple">Lila</option>
+    <option value="orange" data-i18n="c_orange"></option>
+    <option value="red" data-i18n="c_red"></option>
+    <option value="yellow" data-i18n="c_yellow"></option>
+    <option value="green" data-i18n="c_green"></option>
+    <option value="blue" data-i18n="c_blue"></option>
+    <option value="purple" data-i18n="c_purple"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="warn2">Stufe 2 ab ≥</label><input id="warn2" placeholder="optional"></div>
-<div class="row"><label data-i18n="c2">Farbe 2</label>
+<div class="row"><label data-i18n="warn2"></label><input id="warn2" placeholder="optional"></div>
+<div class="row"><label data-i18n="c2"></label>
   <select id="color2">
-    <option value="red" data-i18n="c_red">Rot</option>
-    <option value="orange" data-i18n="c_orange">Orange</option>
-    <option value="yellow" data-i18n="c_yellow">Gelb</option>
-    <option value="green" data-i18n="c_green">Grün</option>
-    <option value="blue" data-i18n="c_blue">Blau</option>
-    <option value="purple" data-i18n="c_purple">Lila</option>
+    <option value="red" data-i18n="c_red"></option>
+    <option value="orange" data-i18n="c_orange"></option>
+    <option value="yellow" data-i18n="c_yellow"></option>
+    <option value="green" data-i18n="c_green"></option>
+    <option value="blue" data-i18n="c_blue"></option>
+    <option value="purple" data-i18n="c_purple"></option>
   </select>
 </div>
-<div class="hint" data-i18n="warnHint">Kachel färbt sich ab Stufe 1, stärker ab Stufe 2 (z.B. 1 = orange, 5 = rot). Leer = keine Farbe.</div>
-<div class="row"><label data-i18n="press">Bei Druck</label>
+<div class="hint" data-i18n="warnHint"></div>
+<div class="row"><label data-i18n="press"></label>
   <select id="press">
-    <option value="none" data-i18n="p_none">Nichts</option>
-    <option value="gmail" data-i18n="p_gmail">Gmail öffnen</option>
-    <option value="toggle" data-i18n="p_toggle">Schalten (toggle)</option>
-    <option value="url" data-i18n="p_url">Website öffnen</option>
-    <option value="service" data-i18n="p_service">HA-Dienst aufrufen</option>
+    <option value="none" data-i18n="p_none"></option>
+    <option value="gmail" data-i18n="p_gmail"></option>
+    <option value="toggle" data-i18n="p_toggle"></option>
+    <option value="url" data-i18n="p_url"></option>
+    <option value="service" data-i18n="p_service"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="website">Website-URL</label><input id="url2"></div>
-<div class="row"><label data-i18n="service">Dienst</label><input id="service" placeholder="light.turn_on"></div>
+<div class="row"><label data-i18n="website"></label><input id="url2"></div>
+<div class="row"><label data-i18n="service"></label><input id="service" placeholder="light.turn_on"></div>
 
 <script>
 const I18N = {
-  de:{h:'Home Assistant Entität',url:'Server-URL',token:'Token',tokenHint:'Nur einmal nötig – wird global gespeichert und bei neuen Kacheln vorausgefüllt.',filter:'Filter',search:'Suche',entity:'Entität',display:'Darstellung',disp_num:'Wert',disp_light:'Licht/Schalter',disp_lock:'Schloss',disp_vacuum:'Staubsauger',disp_camera:'Kamera',disp_action:'Aktion / Skript / Button',disp_weather:'Wetter',disp_presence:'Anwesenheit',disp_cover:'Rollo',disp_climate:'Klima/Thermostat',disp_bat:'Batterie',disp_bar:'Balken',covpress:'Bei Druck',cvp_toggle:'Auf / Zu',cvp_open:'Auf',cvp_close:'Zu',cvp_stop:'Stopp',d_vacuum:'Staubsauger',d_camera:'Kameras',d_weather:'Wetter',d_person:'Personen',d_script:'Skripte',d_button:'Buttons',camrate:'Aktualisierung',cr_2:'2 s',cr_4:'4 s',cr_10:'10 s',cr_30:'30 s',vacpress:'Bei Druck',vp_toggle:'Start / Zur Basis',vp_start:'Start',vp_return:'Zur Basis',vp_pause:'Pause',vp_locate:'Sauger suchen',lockpress:'Bei Druck',lkp_toggle:'Ver-/Entriegeln',lkp_lock:'Verriegeln',lkp_unlock:'Entriegeln',lkp_open:'Öffnen (Falle)',lockconfirm:'Bestätigung',lc_off:'Aus (sofort)',lc_double:'Doppeldruck',lc_hold:'Gedrückt halten',lockconfirmHint:'Nur beim Entriegeln/Öffnen abgefragt – Verriegeln geht immer sofort.',lockoncolor:'Farbe verriegelt',loc_fixed:'Grün (fest)',loc_accent:'Aktiv-Farbe (global)',name:'Titel',namesize:'Namensgröße',icon:'Icon',warn1:'Stufe 1 ab ≥',warn2:'Stufe 2 ab ≥',c1:'Farbe 1',c2:'Farbe 2',warnHint:'Kachel färbt sich ab Stufe 1, stärker ab Stufe 2 (z.B. 1 = orange, 5 = rot). Leer = keine Farbe.',press:'Bei Druck',website:'Website-URL',service:'Dienst',connecting:'— verbinde… —',searchPh:'tippen zum Filtern…',ns_auto:'Automatisch',ns_s:'Klein',ns_l:'Groß',ns_off:'Aus (kein Name)',lstyle:'Licht-Stil',ls_bulb:'Glühbirne',ls_icon:'HA-Icon',ls_strip:'LED-Strip',ls_hex:'Hexagon',ls_ring:'Ring',oncolor:'Farbe wenn an',oc_auto:'Lichtfarbe (echt)',oc_accent:'Aktiv-Farbe (global)',lstatus:'Status',lb_auto:'Automatisch',lb_bri:'Helligkeit %',lb_onoff:'An / Aus',lb_none:'Aus (kein Text)',batorient:'Ausrichtung',bo_h:'Liegend',bo_v:'Stehend',lpress:'Bei Druck',lp_toggle:'Umschalten',lp_on:'Einschalten (letzter Zustand)',lp_off:'Ausschalten',lp_scene:'Szene aktivieren',lp_scenetoggle:'Szene / Aus (Umschalten)',lp_scenecycle:'Szenen durchschalten',lp_scenehold:'Szenen: Tippen an/aus · Halten blättert',scene:'Szene',scene2:'Szene 2',scene3:'Szene 3',scene4:'Szene 4',c_red:'Rot',c_orange:'Orange',c_yellow:'Gelb',c_green:'Grün',c_blue:'Blau',c_purple:'Lila',
+  de:{h:'Home Assistant Entität',url:'Server-URL',token:'Token',tokenHint:'Nur einmal nötig – wird global gespeichert und bei neuen Kacheln vorausgefüllt.',filter:'Filter',search:'Suche',entity:'Entität',display:'Darstellung',disp_num:'Wert',disp_light:'Licht/Schalter',disp_lock:'Schloss',disp_vacuum:'Staubsauger',disp_camera:'Kamera',disp_action:'Aktion / Skript / Button',disp_weather:'Wetter',disp_presence:'Anwesenheit',disp_cover:'Rollo',disp_climate:'Klima/Thermostat',disp_bat:'Batterie',disp_bar:'Balken',disp_trend:'Trend / Verlauf',trendh:'Zeitraum',th_1:'1 Std',th_6:'6 Std',th_24:'24 Std',covpress:'Bei Druck',cvp_toggle:'Auf / Zu',cvp_open:'Auf',cvp_close:'Zu',cvp_stop:'Stopp',d_vacuum:'Staubsauger',d_camera:'Kameras',d_weather:'Wetter',d_person:'Personen',d_script:'Skripte',d_button:'Buttons',camrate:'Aktualisierung',cr_2:'2 s',cr_4:'4 s',cr_10:'10 s',cr_30:'30 s',vacpress:'Bei Druck',vp_toggle:'Start / Zur Basis',vp_start:'Start',vp_return:'Zur Basis',vp_pause:'Pause',vp_locate:'Sauger suchen',lockpress:'Bei Druck',lkp_toggle:'Ver-/Entriegeln',lkp_lock:'Verriegeln',lkp_unlock:'Entriegeln',lkp_open:'Öffnen (Falle)',lockconfirm:'Bestätigung',lc_off:'Aus (sofort)',lc_double:'Doppeldruck',lc_hold:'Gedrückt halten',lockconfirmHint:'Nur beim Entriegeln/Öffnen abgefragt – Verriegeln geht immer sofort.',lockoncolor:'Farbe verriegelt',loc_fixed:'Grün (fest)',loc_accent:'Aktiv-Farbe (global)',name:'Titel',namesize:'Namensgröße',icon:'Icon',warn1:'Stufe 1 ab ≥',warn2:'Stufe 2 ab ≥',c1:'Farbe 1',c2:'Farbe 2',warnHint:'Kachel färbt sich ab Stufe 1, stärker ab Stufe 2 (z.B. 1 = orange, 5 = rot). Leer = keine Farbe.',press:'Bei Druck',website:'Website-URL',service:'Dienst',connecting:'— verbinde… —',searchPh:'tippen zum Filtern…',ns_auto:'Automatisch',ns_s:'Klein',ns_l:'Groß',ns_off:'Aus (kein Name)',lstyle:'Licht-Stil',ls_bulb:'Glühbirne',ls_icon:'HA-Icon',ls_strip:'LED-Strip',ls_hex:'Hexagon',ls_ring:'Ring',oncolor:'Farbe wenn an',oc_auto:'Lichtfarbe (echt)',oc_accent:'Aktiv-Farbe (global)',lstatus:'Status',lb_auto:'Automatisch',lb_bri:'Helligkeit %',lb_onoff:'An / Aus',lb_none:'Aus (kein Text)',batorient:'Ausrichtung',bo_h:'Liegend',bo_v:'Stehend',lpress:'Bei Druck',lp_toggle:'Umschalten',lp_on:'Einschalten (letzter Zustand)',lp_off:'Ausschalten',lp_scene:'Szene aktivieren',lp_scenetoggle:'Szene / Aus (Umschalten)',lp_scenecycle:'Szenen durchschalten',lp_scenehold:'Szenen: Tippen an/aus · Halten blättert',scene:'Szene',scene2:'Szene 2',scene3:'Szene 3',scene4:'Szene 4',c_red:'Rot',c_orange:'Orange',c_yellow:'Gelb',c_green:'Grün',c_blue:'Blau',c_purple:'Lila',
      d_all:'Alle',d_sensor:'Sensoren',d_binary:'Binärsensoren',d_light:'Licht',d_switch:'Schalter',d_lock:'Schlösser',d_media:'Media Player',d_climate:'Klima',d_cover:'Rollos',d_scene:'Szenen',
      p_none:'Nichts',p_gmail:'Gmail öffnen',p_toggle:'Schalten (toggle)',p_url:'Website öffnen',p_service:'HA-Dienst aufrufen',ic_auto:'Automatisch',ic_none:'— kein —',conn:'⚙ Globale Einstellungen',change:'✎ Ändern',climpress:'Bei Druck',cp_none:'Nur Anzeige',cp_warm:'Wärmer (+0,5°)',cp_cool:'Kälter (−0,5°)',cp_toggle:'An / Aus',acc:'Aktiv-Farbe',accHint:'Farbe wenn Media läuft (gilt für alle Kacheln).',ac_green:'Grün',ac_blue:'Blau',ac_purple:'Lila',ac_orange:'Orange',ac_red:'Rot',ac_teal:'Türkis',ac_pink:'Pink',bg:'Hintergrund',bg_default:'Standard (Blaugrau)',bg_black:'Schwarz',bg_gray:'Grau',bg_blue:'Blau',bg_green:'Grün',bg_purple:'Lila',bg_teal:'Türkis',keybg:'Kachel-Farbe',kb_global:'Wie global',kb_hint:'↳ Global unter ⚙ Globale Einstellungen',bgHint:'Standard-Hintergrund für alle Kacheln (pro Kachel unten überschreibbar).'},
-  en:{h:'Home Assistant Entity',url:'Server URL',token:'Token',tokenHint:'Needed once – stored globally and pre-filled on new keys.',filter:'Filter',search:'Search',entity:'Entity',display:'Display',disp_num:'Value',disp_light:'Light/Switch',disp_lock:'Lock',disp_vacuum:'Vacuum',disp_camera:'Camera',disp_action:'Action / Script / Button',disp_weather:'Weather',disp_presence:'Presence',disp_cover:'Cover',disp_climate:'Climate/Thermostat',disp_bat:'Battery',disp_bar:'Bar',covpress:'On press',cvp_toggle:'Open / Close',cvp_open:'Open',cvp_close:'Close',cvp_stop:'Stop',d_vacuum:'Vacuums',d_camera:'Cameras',d_weather:'Weather',d_person:'People',d_script:'Scripts',d_button:'Buttons',camrate:'Refresh',cr_2:'2 s',cr_4:'4 s',cr_10:'10 s',cr_30:'30 s',vacpress:'On press',vp_toggle:'Start / Return',vp_start:'Start',vp_return:'Return to base',vp_pause:'Pause',vp_locate:'Locate',lockpress:'On press',lkp_toggle:'Lock / Unlock',lkp_lock:'Lock',lkp_unlock:'Unlock',lkp_open:'Open (latch)',lockconfirm:'Confirm',lc_off:'Off (instant)',lc_double:'Double press',lc_hold:'Press & hold',lockconfirmHint:'Only asked when unlocking/opening – locking is always instant.',lockoncolor:'Locked colour',loc_fixed:'Green (fixed)',loc_accent:'Active colour (global)',name:'Title',namesize:'Name size',icon:'Icon',warn1:'Level 1 if ≥',warn2:'Level 2 if ≥',c1:'Color 1',c2:'Color 2',warnHint:'Tile colors from level 1, stronger from level 2 (e.g. 1 = orange, 5 = red). Empty = no color.',press:'On press',website:'Website URL',service:'Service',connecting:'— connecting… —',searchPh:'type to filter…',ns_auto:'Automatic',ns_s:'Small',ns_l:'Large',ns_off:'Off (no name)',lstyle:'Light style',ls_bulb:'Bulb',ls_icon:'HA icon',ls_strip:'LED strip',ls_hex:'Hexagon',ls_ring:'Ring',oncolor:'Colour when on',oc_auto:'Light colour (real)',oc_accent:'Active colour (global)',lstatus:'Status',lb_auto:'Automatic',lb_bri:'Brightness %',lb_onoff:'On / Off',lb_none:'Off (no text)',batorient:'Orientation',bo_h:'Lying',bo_v:'Standing',lpress:'On press',lp_toggle:'Toggle',lp_on:'Turn on (last state)',lp_off:'Turn off',lp_scene:'Activate scene',lp_scenetoggle:'Scene / Off (toggle)',lp_scenecycle:'Cycle scenes',lp_scenehold:'Scenes: tap on/off · hold to browse',scene:'Scene',scene2:'Scene 2',scene3:'Scene 3',scene4:'Scene 4',c_red:'Red',c_orange:'Orange',c_yellow:'Yellow',c_green:'Green',c_blue:'Blue',c_purple:'Purple',
+  en:{h:'Home Assistant Entity',url:'Server URL',token:'Token',tokenHint:'Needed once – stored globally and pre-filled on new keys.',filter:'Filter',search:'Search',entity:'Entity',display:'Display',disp_num:'Value',disp_light:'Light/Switch',disp_lock:'Lock',disp_vacuum:'Vacuum',disp_camera:'Camera',disp_action:'Action / Script / Button',disp_weather:'Weather',disp_presence:'Presence',disp_cover:'Cover',disp_climate:'Climate/Thermostat',disp_bat:'Battery',disp_bar:'Bar',disp_trend:'Trend / History',trendh:'Range',th_1:'1 h',th_6:'6 h',th_24:'24 h',covpress:'On press',cvp_toggle:'Open / Close',cvp_open:'Open',cvp_close:'Close',cvp_stop:'Stop',d_vacuum:'Vacuums',d_camera:'Cameras',d_weather:'Weather',d_person:'People',d_script:'Scripts',d_button:'Buttons',camrate:'Refresh',cr_2:'2 s',cr_4:'4 s',cr_10:'10 s',cr_30:'30 s',vacpress:'On press',vp_toggle:'Start / Return',vp_start:'Start',vp_return:'Return to base',vp_pause:'Pause',vp_locate:'Locate',lockpress:'On press',lkp_toggle:'Lock / Unlock',lkp_lock:'Lock',lkp_unlock:'Unlock',lkp_open:'Open (latch)',lockconfirm:'Confirm',lc_off:'Off (instant)',lc_double:'Double press',lc_hold:'Press & hold',lockconfirmHint:'Only asked when unlocking/opening – locking is always instant.',lockoncolor:'Locked colour',loc_fixed:'Green (fixed)',loc_accent:'Active colour (global)',name:'Title',namesize:'Name size',icon:'Icon',warn1:'Level 1 if ≥',warn2:'Level 2 if ≥',c1:'Color 1',c2:'Color 2',warnHint:'Tile colors from level 1, stronger from level 2 (e.g. 1 = orange, 5 = red). Empty = no color.',press:'On press',website:'Website URL',service:'Service',connecting:'— connecting… —',searchPh:'type to filter…',ns_auto:'Automatic',ns_s:'Small',ns_l:'Large',ns_off:'Off (no name)',lstyle:'Light style',ls_bulb:'Bulb',ls_icon:'HA icon',ls_strip:'LED strip',ls_hex:'Hexagon',ls_ring:'Ring',oncolor:'Colour when on',oc_auto:'Light colour (real)',oc_accent:'Active colour (global)',lstatus:'Status',lb_auto:'Automatic',lb_bri:'Brightness %',lb_onoff:'On / Off',lb_none:'Off (no text)',batorient:'Orientation',bo_h:'Lying',bo_v:'Standing',lpress:'On press',lp_toggle:'Toggle',lp_on:'Turn on (last state)',lp_off:'Turn off',lp_scene:'Activate scene',lp_scenetoggle:'Scene / Off (toggle)',lp_scenecycle:'Cycle scenes',lp_scenehold:'Scenes: tap on/off · hold to browse',scene:'Scene',scene2:'Scene 2',scene3:'Scene 3',scene4:'Scene 4',c_red:'Red',c_orange:'Orange',c_yellow:'Yellow',c_green:'Green',c_blue:'Blue',c_purple:'Purple',
      d_all:'All',d_sensor:'Sensors',d_binary:'Binary sensors',d_light:'Lights',d_switch:'Switches',d_lock:'Locks',d_media:'Media players',d_climate:'Climate',d_cover:'Covers',d_scene:'Scenes',
      p_none:'Nothing',p_gmail:'Open Gmail',p_toggle:'Toggle entity',p_url:'Open website',p_service:'Call HA service',ic_auto:'Automatic',ic_none:'— none —',conn:'⚙ Global settings',change:'✎ Change',climpress:'On press',cp_none:'Display only',cp_warm:'Warmer (+0.5°)',cp_cool:'Cooler (−0.5°)',cp_toggle:'On / Off',acc:'Active colour',accHint:'Colour while media plays (applies to all keys).',ac_green:'Green',ac_blue:'Blue',ac_purple:'Purple',ac_orange:'Orange',ac_red:'Red',ac_teal:'Teal',ac_pink:'Pink',bg:'Background',bg_default:'Default (blue-grey)',bg_black:'Black',bg_gray:'Grey',bg_blue:'Blue',bg_green:'Green',bg_purple:'Purple',bg_teal:'Teal',keybg:'Key colour',kb_global:'As global',kb_hint:'↳ Global default in ⚙ Global settings',bgHint:'Default background for all keys (override per key below).'}
 };
@@ -308,12 +316,13 @@ function updateFieldVisibility(){
   showRow('lockoncolor', d === 'lock');
   const lch = document.querySelector('.hint[data-i18n="lockconfirmHint"]'); if(lch) lch.style.display = (d==='lock') ? '' : 'none';
   showRow('vacuumpress', d === 'vacuum');
+  showRow('trendhours', d === 'trend');
   showRow('camrate', d === 'camera');
   showRow('coverpress', d === 'cover');
   showRow('climatepress', d === 'climate');
 }
 // only offer display modes that make sense for the picked entity
-const DISPLAY_OPTS = [['','disp_num'],['light','disp_light'],['lock','disp_lock'],['climate','disp_climate'],['cover','disp_cover'],['vacuum','disp_vacuum'],['camera','disp_camera'],['weather','disp_weather'],['presence','disp_presence'],['battery','disp_bat'],['bar','disp_bar'],['action','disp_action']];
+const DISPLAY_OPTS = [['','disp_num'],['light','disp_light'],['lock','disp_lock'],['climate','disp_climate'],['cover','disp_cover'],['vacuum','disp_vacuum'],['camera','disp_camera'],['weather','disp_weather'],['presence','disp_presence'],['battery','disp_bat'],['bar','disp_bar'],['trend','disp_trend'],['action','disp_action']];
 // is the picked entity a numeric value? (has a unit, a numeric device_class, or a parseable state)
 function entityIsNumeric(info){
   if (!info) return true;                        // unknown → don't hide anything
@@ -336,6 +345,7 @@ function displayAllowed(val, info){
   if (val==='climate') return dom==='climate';
   // battery/bar only for a 0-100 % value (battery level, humidity, valve position …)
   if (val==='battery'||val==='bar') return unit==='%' || ['battery','humidity','moisture','battery_charging'].indexOf(dc)>=0;
+  if (val==='trend') return ['sensor','number','input_number'].indexOf(dom)>=0 || !!unit;   // any recorded numeric sensor
   return true;
 }
 function updateDisplayOptions(){
@@ -354,7 +364,7 @@ function updateDisplayOptions(){
 
 let ws=null, uuid=null, settings={};
 const $ = id => document.getElementById(id);
-const fields = ['url','token','entity','display','title','namesize','keybg','lightstyle','oncolor','lightlabel','lightpress','scene','scene2','scene3','scene4','batorient','lockpress','lockconfirm','lockoncolor','vacuumpress','camrate','coverpress','climatepress','icon','warn','warn2','color1','color2','press','url2','service'];
+const fields = ['url','token','entity','display','title','namesize','keybg','lightstyle','oncolor','lightlabel','lightpress','scene','scene2','scene3','scene4','batorient','lockpress','lockconfirm','lockoncolor','vacuumpress','trendhours','camrate','coverpress','climatepress','icon','warn','warn2','color1','color2','press','url2','service'];
 
 let globalSettings = {};
 function writeGlobal(){

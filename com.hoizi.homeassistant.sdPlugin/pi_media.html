@@ -12,99 +12,99 @@
 </style>
 </head>
 <body>
-<h3 data-i18n="h">Media / Music Assistant</h3>
-<div class="row" style="justify-content:flex-end;margin:0"><a href="#" id="connToggle" data-i18n="conn" style="color:#6aa0e0;text-decoration:none;font-size:11px">⚙ Verbindung</a></div>
+<h3 data-i18n="h"></h3>
+<div class="row" style="justify-content:flex-end;margin:0"><a href="#" id="connToggle" data-i18n="conn" style="color:#6aa0e0;text-decoration:none;font-size:11px"></a></div>
 <div id="connBox">
-  <div class="row"><label data-i18n="url">Server-URL</label><input id="url" placeholder="http://homeassistant.local:8123"></div>
-  <div class="row"><label data-i18n="token">Token</label><input id="token" type="password"></div>
-  <div class="hint" data-i18n="tokenHint">Nur einmal nötig – wird global gespeichert und bei neuen Kacheln vorausgefüllt.</div>
-  <div class="row"><label data-i18n="bg">Hintergrund</label>
+  <div class="row"><label data-i18n="url"></label><input id="url" placeholder="http://homeassistant.local:8123"></div>
+  <div class="row"><label data-i18n="token"></label><input id="token" type="password"></div>
+  <div class="hint" data-i18n="tokenHint"></div>
+  <div class="row"><label data-i18n="bg"></label>
     <select id="bgtheme">
-      <option value="" data-i18n="bg_default">Standard (Blaugrau)</option>
-      <option value="black" data-i18n="bg_black">Schwarz</option>
-      <option value="gray" data-i18n="bg_gray">Grau</option>
-      <option value="blue" data-i18n="bg_blue">Blau</option>
-      <option value="green" data-i18n="bg_green">Grün</option>
-      <option value="purple" data-i18n="bg_purple">Lila</option>
-      <option value="teal" data-i18n="bg_teal">Türkis</option>
+      <option value="" data-i18n="bg_default"></option>
+      <option value="black" data-i18n="bg_black"></option>
+      <option value="gray" data-i18n="bg_gray"></option>
+      <option value="blue" data-i18n="bg_blue"></option>
+      <option value="green" data-i18n="bg_green"></option>
+      <option value="purple" data-i18n="bg_purple"></option>
+      <option value="teal" data-i18n="bg_teal"></option>
     </select>
   </div>
-  <div class="hint" data-i18n="bgHint">Standard-Hintergrund für alle Kacheln.</div>
-  <div class="row"><label data-i18n="acc">Aktiv-Farbe</label>
+  <div class="hint" data-i18n="bgHint"></div>
+  <div class="row"><label data-i18n="acc"></label>
     <select id="accent">
-      <option value="" data-i18n="ac_green">Grün</option>
-      <option value="blue" data-i18n="ac_blue">Blau</option>
-      <option value="purple" data-i18n="ac_purple">Lila</option>
-      <option value="orange" data-i18n="ac_orange">Orange</option>
-      <option value="red" data-i18n="ac_red">Rot</option>
-      <option value="teal" data-i18n="ac_teal">Türkis</option>
-      <option value="pink" data-i18n="ac_pink">Pink</option>
+      <option value="" data-i18n="ac_green"></option>
+      <option value="blue" data-i18n="ac_blue"></option>
+      <option value="purple" data-i18n="ac_purple"></option>
+      <option value="orange" data-i18n="ac_orange"></option>
+      <option value="red" data-i18n="ac_red"></option>
+      <option value="teal" data-i18n="ac_teal"></option>
+      <option value="pink" data-i18n="ac_pink"></option>
     </select>
   </div>
-  <div class="hint" data-i18n="accHint">Farbe wenn Media läuft (gilt für alle Kacheln).</div>
+  <div class="hint" data-i18n="accHint"></div>
 </div>
-<div class="row" id="entitySummary" style="display:none"><label data-i18n="player">Player</label><span id="entityName" style="flex:1;padding:5px 0;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span><a href="#" id="entityEdit" data-i18n="change" style="color:#6aa0e0;text-decoration:none;font-size:11px;margin-left:8px">✎ Ändern</a></div>
+<div class="row" id="entitySummary" style="display:none"><label data-i18n="player"></label><span id="entityName" style="flex:1;padding:5px 0;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span><a href="#" id="entityEdit" data-i18n="change" style="color:#6aa0e0;text-decoration:none;font-size:11px;margin-left:8px"></a></div>
 <div id="entityBox">
-<div class="row"><label data-i18n="search">Suche</label><input id="search" placeholder="tippen zum Filtern…"></div>
-<div class="row"><label data-i18n="player">Player</label><select id="entity" size="5"></select></div>
+<div class="row"><label data-i18n="search"></label><input id="search" placeholder="tippen zum Filtern…"></div>
+<div class="row"><label data-i18n="player"></label><select id="entity" size="5"></select></div>
 </div>
-<div class="row"><label data-i18n="func">Funktion</label>
+<div class="row"><label data-i18n="func"></label>
   <select id="role">
-    <option value="playpause" data-i18n="r_pp">Play / Pause</option>
-    <option value="nowplaying" data-i18n="r_now">Aktuelle Wiedergabe</option>
-    <option value="next" data-i18n="r_next">Nächster Titel</option>
-    <option value="prev" data-i18n="r_prev">Vorheriger Titel</option>
-    <option value="volup" data-i18n="r_up">Lauter</option>
-    <option value="voldown" data-i18n="r_down">Leiser</option>
-    <option value="stop" data-i18n="r_stop">Stopp</option>
-    <option value="play" data-i18n="r_play">Music Assistant abspielen</option>
+    <option value="playpause" data-i18n="r_pp"></option>
+    <option value="nowplaying" data-i18n="r_now"></option>
+    <option value="next" data-i18n="r_next"></option>
+    <option value="prev" data-i18n="r_prev"></option>
+    <option value="volup" data-i18n="r_up"></option>
+    <option value="voldown" data-i18n="r_down"></option>
+    <option value="stop" data-i18n="r_stop"></option>
+    <option value="play" data-i18n="r_play"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="pl">Playlist</label><select id="playlistPick"><option value="">— laden… —</option></select></div>
-<div class="row"><label data-i18n="content">MA-Inhalt</label><input id="ma_media" placeholder="oder Name/URI manuell"></div>
-<div class="row"><label data-i18n="matype">MA-Typ</label>
+<div class="row"><label data-i18n="pl"></label><select id="playlistPick"><option value="">— laden… —</option></select></div>
+<div class="row"><label data-i18n="content"></label><input id="ma_media" placeholder="oder Name/URI manuell"></div>
+<div class="row"><label data-i18n="matype"></label>
   <select id="ma_type">
     <option value="playlist">playlist</option><option value="album">album</option>
     <option value="artist">artist</option><option value="track">track</option><option value="radio">radio</option>
   </select>
 </div>
-<div class="row"><label data-i18n="iconlbl">Icon</label>
+<div class="row"><label data-i18n="iconlbl"></label>
   <select id="hideicon">
-    <option value="" data-i18n="ic_show">Anzeigen</option>
-    <option value="1" data-i18n="ic_hide">Ausblenden (nur Text)</option>
+    <option value="" data-i18n="ic_show"></option>
+    <option value="1" data-i18n="ic_hide"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="proglbl">Fortschritt</label>
+<div class="row"><label data-i18n="proglbl"></label>
   <select id="hideprogress">
-    <option value="" data-i18n="pr_show">Balken anzeigen</option>
-    <option value="1" data-i18n="pr_hide">Ausblenden</option>
+    <option value="" data-i18n="pr_show"></option>
+    <option value="1" data-i18n="pr_hide"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="coverlbl">Hintergrund</label>
+<div class="row"><label data-i18n="coverlbl"></label>
   <select id="cover">
-    <option value="" data-i18n="cv_theme">Theme-Farbe (global)</option>
-    <option value="color" data-i18n="cv_color">Andere Farbe</option>
-    <option value="1" data-i18n="cv_cover">Album-Cover</option>
-    <option value="2" data-i18n="cv_cover_play">Album-Cover (nur beim Abspielen)</option>
+    <option value="" data-i18n="cv_theme"></option>
+    <option value="color" data-i18n="cv_color"></option>
+    <option value="1" data-i18n="cv_cover"></option>
+    <option value="2" data-i18n="cv_cover_play"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="colorlbl">Farbe</label>
+<div class="row"><label data-i18n="colorlbl"></label>
   <select id="keybg">
-    <option value="black" data-i18n="bg_black">Schwarz</option>
-    <option value="gray" data-i18n="bg_gray">Grau</option>
-    <option value="blue" data-i18n="bg_blue">Blau</option>
-    <option value="green" data-i18n="bg_green">Grün</option>
-    <option value="purple" data-i18n="bg_purple">Lila</option>
-    <option value="teal" data-i18n="bg_teal">Türkis</option>
+    <option value="black" data-i18n="bg_black"></option>
+    <option value="gray" data-i18n="bg_gray"></option>
+    <option value="blue" data-i18n="bg_blue"></option>
+    <option value="green" data-i18n="bg_green"></option>
+    <option value="purple" data-i18n="bg_purple"></option>
+    <option value="teal" data-i18n="bg_teal"></option>
   </select>
 </div>
-<div class="row"><label data-i18n="name">Titel</label><input id="title"></div>
-<div class="row"><label data-i18n="namesize">Namensgröße</label>
+<div class="row"><label data-i18n="name"></label><input id="title"></div>
+<div class="row"><label data-i18n="namesize"></label>
   <select id="namesize">
-    <option value="" data-i18n="ns_auto">Automatisch</option>
-    <option value="S" data-i18n="ns_s">Klein</option>
-    <option value="L" data-i18n="ns_l">Groß</option>
-    <option value="off" data-i18n="ns_off">Aus (kein Name)</option>
+    <option value="" data-i18n="ns_auto"></option>
+    <option value="S" data-i18n="ns_s"></option>
+    <option value="L" data-i18n="ns_l"></option>
+    <option value="off" data-i18n="ns_off"></option>
   </select>
 </div>
 
