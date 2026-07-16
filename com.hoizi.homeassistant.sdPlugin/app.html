@@ -899,7 +899,40 @@ function maPlay(context, cfg, i){                       // start the i-th playli
 }
 
 // ---- key press ----
+const LPRESS = {};   // context -> { timer, fired } for the optional long-press secondary action
+function longPressCfg(cfg, action){
+  if (!cfg.longpress) return null;
+  // skip only where the key already owns the "hold" gesture
+  if (action==='com.hoizi.homeassistant.media'){
+    if ((cfg.role||'playpause')==='play' && cfg.playmode==='hold') return null;   // carousel browse uses hold
+    return cfg.longpress;
+  }
+  if (cfg.display==='lock' && cfg.lockconfirm==='hold') return null;
+  if (cfg.display==='light' && cfg.lightpress==='scenehold') return null;
+  return cfg.longpress;
+}
+function doLongPress(cfg){
+  const lp = cfg.longpress;
+  if (lp==='url' && cfg.longurl) sdSend({ event:'openUrl', payload:{ url:cfg.longurl } });
+  else if (lp==='gmail') sdSend({ event:'openUrl', payload:{ url:'https://mail.google.com/mail/u/0/#inbox' } });
+  else if (lp==='service' && cfg.longservice && cfg.longservice.indexOf('.')>0){
+    const [dom,svc] = cfg.longservice.split('.');
+    const noTarget = ['script','scene','button','input_button','automation','notify'].indexOf(dom)>=0;
+    haCall(cfg, dom, svc, noTarget ? null : cfg.entity);
+  }
+}
 function onKeyDown(context){
+  const info = ctxInfo[context]; if (!info) return;
+  const cfg = info.settings;
+  const lp = longPressCfg(cfg, info.action);
+  if (lp){                                          // long-press armed: short action fires on release, long on timer
+    LPRESS[context] = { fired:false };
+    LPRESS[context].timer = setTimeout(()=>{ if(!LPRESS[context]) return; LPRESS[context].fired=true; doLongPress(cfg); }, 550);
+    return;
+  }
+  doPress(context);
+}
+function doPress(context){
   const info = ctxInfo[context]; if (!info) return;
   const cfg = info.settings;
   if (info.action === 'com.hoizi.homeassistant.media'){
@@ -1065,6 +1098,9 @@ function onKeyUp(context){
     }
     delete MACYCLE[context];
   }
+  // long-press: released before the timer fired → it was a short press → normal action
+  const l = LPRESS[context];
+  if (l){ clearTimeout(l.timer); if (!l.fired) doPress(context); delete LPRESS[context]; }
 }
 
 // ---- Stream Deck plumbing ----
