@@ -22,20 +22,6 @@ const LOCKHINT = {};           // context -> 'again' | 'hold' | null  (confirm o
 const CYCLE = {};              // context -> { timer, stepped } while a "hold to browse scenes" key is down
 const ACTFLASH = {};           // context -> timestamp of last action press (brief tile flash)
 const CAMIMG = {};             // context -> last successfully loaded camera/image snapshot Image
-const INFOIDX = {};            // context -> current slot of an info-carousel (press='cycle')
-function infoList(cfg){
-  return [
-    { entity:cfg.entity,  title:cfg.title },
-    { entity:cfg.entity2, title:cfg.title2 },
-    { entity:cfg.entity3, title:cfg.title3 },
-    { entity:cfg.entity4, title:cfg.title4 }
-  ].filter(x => x.entity);
-}
-function effSlot(context, cfg){
-  const L = infoList(cfg); if (!L.length) return { entity:cfg.entity, title:cfg.title };
-  const n = L.length, i = (((INFOIDX[context]||0) % n) + n) % n;
-  return L[i];
-}
 let ANIM = 0;                  // frame counter for the equalizer animation
 function animateActive(){      // redraw only currently-playing "play" tiles so their eq bars animate
   ANIM++;
@@ -863,19 +849,14 @@ function drawMedia(context, cfg){
 
 function draw(context){
   const info = ctxInfo[context]; if (!info) return;
-  if (info.action === 'com.hoizi.homeassistant.media'){ drawMedia(context, info.settings); return; }
-  const cfg = info.settings;
-  if (cfg.press==='cycle' && infoList(cfg).length>1){                 // info carousel → render the current slot
-    const s = effSlot(context, cfg);
-    drawEntity(context, Object.assign({}, cfg, { entity:s.entity, title:(s.title||'') }));
-  } else drawEntity(context, cfg);
+  if (info.action === 'com.hoizi.homeassistant.media') drawMedia(context, info.settings);
+  else drawEntity(context, info.settings);
 }
 function renderAll(){ Object.keys(ctxInfo).forEach(draw); }
 function renderForEntity(entity){
   Object.keys(ctxInfo).forEach(ctx => {
     const i = ctxInfo[ctx];
-    const cur = (i.settings.press==='cycle') ? effSlot(ctx, i.settings).entity : i.settings.entity;  // the currently shown info
-    if (cur !== entity) return;
+    if (i.settings.entity !== entity) return;
     if (i.settings.display==='camera') refreshCam(ctx, i.settings);   // pull a fresh frame (token may have rotated)
     else draw(ctx);
   });
@@ -1075,7 +1056,6 @@ function doPress(context){
     return;
   }
   const press = cfg.press || 'none';
-  if (press==='cycle'){ INFOIDX[context] = (INFOIDX[context]||0) + 1; draw(context); return; }   // show next info
   if (press==='toggle' && cfg.entity) haCall(cfg,'homeassistant','toggle',cfg.entity);
   else if (press==='gmail') sdSend({ event:'openUrl', payload:{ url:'https://mail.google.com/mail/u/0/#inbox' } });
   else if (press==='url' && cfg.url2) sdSend({ event:'openUrl', payload:{ url:cfg.url2 } });
