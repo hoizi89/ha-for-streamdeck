@@ -789,10 +789,13 @@ function drawMedia(context, cfg){
   // a "play" tile is ACTIVE when its content runs. radio/track are verifiable by content_id;
   // playlist/album/artist expand into tracks (content_id can't match) → fall back to "last started from deck".
   const cid = st && st.attributes && st.attributes.media_content_id;
+  const pmode = cfg.playmode || '';
+  let tgt = cfg.ma_media, tgtName = cfg.ma_name;                 // carousel → the currently selected slot
+  if (pmode==='next' || pmode==='hold'){ const L = maList(cfg); const i = MAIDX[context]==null?0:MAIDX[context]; if (L[i]){ tgt = L[i].id; tgtName = L[i].name; } }
   const verifiable = (cfg.ma_type==='radio' || cfg.ma_type==='track');
-  const cidMatch = cid && cid === cfg.ma_media;
-  const startedMatch = !verifiable && cfg.entity && STARTED[cfg.entity] === cfg.ma_media;
-  const active = !!(cfg.ma_media && playing && (cidMatch || startedMatch));
+  const cidMatch = cid && cid === tgt;
+  const startedMatch = !verifiable && cfg.entity && STARTED[cfg.entity] === tgt;
+  const active = !!(tgt && playing && (cidMatch || startedMatch));
   const hot = (role==='play') ? active : playing;
   if (cover) drawCoverBg(cover);
   else { const th = bgTheme(cfg), a = accent(); drawBg(hot?a.top:th.top, hot?a.bot:th.bot, hot?a.glow:null); }
@@ -829,7 +832,7 @@ function drawMedia(context, cfg){
   let label = cfg.title || '';
   if (!label){
     if (role==='playpause' && st && st.attributes && st.attributes.media_title) label = st.attributes.media_title;
-    else if (role==='play') label = cfg.ma_name || ({playlist:'Playlist',radio:'Radio',album:'Album',artist:'Interpret',track:'Track'}[cfg.ma_type] || 'Wiedergabe');
+    else if (role==='play') label = tgtName || ({playlist:'Playlist',radio:'Radio',album:'Album',artist:'Interpret',track:'Track'}[cfg.ma_type] || 'Wiedergabe');
     // next/prev/vol/stop: the symbol says it all – no default name unless the user sets a title
   }
   // progress only where it belongs: playpause (reflects the player) or a play tile that is itself active
@@ -870,6 +873,27 @@ function toggleSceneOff(context, cfg){                 // tap: on -> off, off ->
   haCall(cfg,'scene','turn_on', list[i] || list[0]);
 }
 
+// ---- Music Assistant playlist carousel ----
+const MAIDX = {};     // context -> current carousel index
+const MACYCLE = {};   // context -> { timer, stepped } while browsing playlists by holding
+function maList(cfg){
+  return [
+    { id: cfg.ma_media,  name: cfg.ma_name },
+    { id: cfg.ma_media2, name: cfg.ma_name2 },
+    { id: cfg.ma_media3, name: cfg.ma_name3 },
+    { id: cfg.ma_media4, name: cfg.ma_name4 }
+  ].filter(x => x.id);
+}
+function maPlay(context, cfg, i){                       // start the i-th playlist (wraps around)
+  const list = maList(cfg); if (!list.length) return;
+  i = ((i % list.length) + list.length) % list.length;
+  MAIDX[context] = i;
+  const item = list[i];
+  haCall(cfg,'music_assistant','play_media',cfg.entity,{ media_id:item.id, media_type:(cfg.ma_type||'playlist') });
+  STARTED[cfg.entity] = item.id; persistStarted();
+  renderForEntity(cfg.entity);
+}
+
 // ---- key press ----
 function onKeyDown(context){
   const info = ctxInfo[context]; if (!info) return;
@@ -882,15 +906,19 @@ function onKeyDown(context){
     else if (role==='volup') haCall(cfg,'media_player','volume_up',cfg.entity);
     else if (role==='voldown') haCall(cfg,'media_player','volume_down',cfg.entity);
     else if (role==='stop') haCall(cfg,'media_player','media_stop',cfg.entity);
-    else if (role==='play' && cfg.ma_media){
-      const st = stateFor(cfg);
-      const cid = st && st.attributes && st.attributes.media_content_id;
-      const thisActive = st && st.state==='playing' && (cid===cfg.ma_media || STARTED[cfg.entity]===cfg.ma_media);
-      if (thisActive) haCall(cfg,'media_player','media_play_pause',cfg.entity);   // THIS content is running → pause
-      else {
-        haCall(cfg,'music_assistant','play_media',cfg.entity,{ media_id:cfg.ma_media, media_type:(cfg.ma_type||'playlist') });  // else → start it
-        STARTED[cfg.entity] = cfg.ma_media; persistStarted();   // remember for playlist "active" marking
-        renderForEntity(cfg.entity);
+    else if (role==='play'){
+      const mode = cfg.playmode || '';
+      if (mode==='next'){                                   // carousel: each tap → next playlist
+        maPlay(context, cfg, (MAIDX[context]==null?-1:MAIDX[context]) + 1);
+      } else if (mode==='hold'){                            // carousel: tap = toggle, hold = browse (handled on keyUp)
+        MACYCLE[context] = { stepped:false };
+        MACYCLE[context].timer = setInterval(()=>{ if(!MACYCLE[context]) return; MACYCLE[context].stepped=true; maPlay(context, cfg, (MAIDX[context]==null?-1:MAIDX[context])+1); }, 900);
+      } else if (cfg.ma_media){                             // single
+        const st = stateFor(cfg);
+        const cid = st && st.attributes && st.attributes.media_content_id;
+        const thisActive = st && st.state==='playing' && (cid===cfg.ma_media || STARTED[cfg.entity]===cfg.ma_media);
+        if (thisActive) haCall(cfg,'media_player','media_play_pause',cfg.entity);   // THIS content is running → pause
+        else { haCall(cfg,'music_assistant','play_media',cfg.entity,{ media_id:cfg.ma_media, media_type:(cfg.ma_type||'playlist') }); STARTED[cfg.entity]=cfg.ma_media; persistStarted(); renderForEntity(cfg.entity); }
       }
     }
     return;
@@ -1013,6 +1041,25 @@ function onKeyUp(context){
     clearInterval(c.timer);
     if (!c.stepped){ const info = ctxInfo[context]; if (info) toggleSceneOff(context, info.settings); }
     delete CYCLE[context];
+  }
+  // MA carousel "tap = toggle / hold = browse": a quick release toggles the current playlist
+  const mc = MACYCLE[context];
+  if (mc){
+    clearInterval(mc.timer);
+    if (!mc.stepped){
+      const cfg = (ctxInfo[context]||{}).settings;
+      if (cfg){
+        const list = maList(cfg);
+        const i = MAIDX[context]==null ? 0 : MAIDX[context];
+        const item = list[i] || list[0];
+        const st = stateFor(cfg);
+        const cur = st && st.attributes && st.attributes.media_content_id;
+        const activeThis = st && st.state==='playing' && item && (cur===item.id || STARTED[cfg.entity]===item.id);
+        if (activeThis) haCall(cfg,'media_player','media_play_pause',cfg.entity);   // running → pause
+        else if (item) maPlay(context, cfg, i);                                     // else → (re)start current
+      }
+    }
+    delete MACYCLE[context];
   }
 }
 

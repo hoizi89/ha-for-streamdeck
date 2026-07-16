@@ -61,6 +61,16 @@
   </select>
 </div>
 <div class="row"><label data-i18n="pl"></label><select id="playlistPick"><option value="">— laden… —</option></select></div>
+<div class="row"><label data-i18n="playmode"></label>
+  <select id="playmode">
+    <option value="" data-i18n="pm_single"></option>
+    <option value="next" data-i18n="pm_next"></option>
+    <option value="hold" data-i18n="pm_hold"></option>
+  </select>
+</div>
+<div class="row"><label data-i18n="pl2"></label><select id="playlistPick2"></select></div>
+<div class="row"><label data-i18n="pl3"></label><select id="playlistPick3"></select></div>
+<div class="row"><label data-i18n="pl4"></label><select id="playlistPick4"></select></div>
 <div class="row"><label data-i18n="content"></label><input id="ma_media" placeholder="oder Name/URI manuell"></div>
 <div class="row"><label data-i18n="matype"></label>
   <select id="ma_type">
@@ -111,9 +121,9 @@
 <script>
 const I18N = {
   de:{h:'Media / Music Assistant',url:'Server-URL',token:'Token',tokenHint:'Nur einmal nötig – wird global gespeichert und bei neuen Kacheln vorausgefüllt.',search:'Suche',player:'Player',func:'Funktion',content:'MA-Inhalt',matype:'MA-Typ',name:'Titel',searchPh:'tippen zum Filtern…',
-     r_pp:'Play / Pause',r_now:'Aktuelle Wiedergabe',r_next:'Nächster Titel',r_prev:'Vorheriger Titel',r_up:'Lauter',r_down:'Leiser',r_stop:'Stopp',r_play:'Music Assistant abspielen',conn:'⚙ Globale Einstellungen',pl:'Bibliothek',change:'✎ Ändern',iconlbl:'Icon',ic_show:'Anzeigen',ic_hide:'Ausblenden (nur Text)',proglbl:'Fortschritt',pr_show:'Balken anzeigen',pr_hide:'Ausblenden',coverlbl:'Hintergrund',cv_theme:'Theme-Farbe (global)',cv_color:'Andere Farbe',colorlbl:'Farbe',cv_cover:'Album-Cover',cv_cover_play:'Album-Cover (nur beim Abspielen)',namesize:'Namensgröße',ns_auto:'Automatisch',ns_s:'Klein',ns_l:'Groß',ns_off:'Aus (kein Name)',bg:'Hintergrund',bg_default:'Standard (Blaugrau)',bg_black:'Schwarz',bg_gray:'Grau',bg_blue:'Blau',bg_green:'Grün',bg_purple:'Lila',bg_teal:'Türkis',bgHint:'Standard-Hintergrund für alle Kacheln.',acc:'Aktiv-Farbe',accHint:'Farbe wenn Media läuft (gilt für alle Kacheln).',ac_green:'Grün',ac_blue:'Blau',ac_purple:'Lila',ac_orange:'Orange',ac_red:'Rot',ac_teal:'Türkis',ac_pink:'Pink'},
+     r_pp:'Play / Pause',r_now:'Aktuelle Wiedergabe',r_next:'Nächster Titel',r_prev:'Vorheriger Titel',r_up:'Lauter',r_down:'Leiser',r_stop:'Stopp',r_play:'Music Assistant abspielen',conn:'⚙ Globale Einstellungen',pl:'Bibliothek',pl2:'Playlist 2',pl3:'Playlist 3',pl4:'Playlist 4',playmode:'Modus',pm_single:'Einzeln',pm_next:'Karussell: Tippen = nächste',pm_hold:'Karussell: Tippen umschalten · Halten blättert',change:'✎ Ändern',iconlbl:'Icon',ic_show:'Anzeigen',ic_hide:'Ausblenden (nur Text)',proglbl:'Fortschritt',pr_show:'Balken anzeigen',pr_hide:'Ausblenden',coverlbl:'Hintergrund',cv_theme:'Theme-Farbe (global)',cv_color:'Andere Farbe',colorlbl:'Farbe',cv_cover:'Album-Cover',cv_cover_play:'Album-Cover (nur beim Abspielen)',namesize:'Namensgröße',ns_auto:'Automatisch',ns_s:'Klein',ns_l:'Groß',ns_off:'Aus (kein Name)',bg:'Hintergrund',bg_default:'Standard (Blaugrau)',bg_black:'Schwarz',bg_gray:'Grau',bg_blue:'Blau',bg_green:'Grün',bg_purple:'Lila',bg_teal:'Türkis',bgHint:'Standard-Hintergrund für alle Kacheln.',acc:'Aktiv-Farbe',accHint:'Farbe wenn Media läuft (gilt für alle Kacheln).',ac_green:'Grün',ac_blue:'Blau',ac_purple:'Lila',ac_orange:'Orange',ac_red:'Rot',ac_teal:'Türkis',ac_pink:'Pink'},
   en:{h:'Media / Music Assistant',url:'Server URL',token:'Token',tokenHint:'Needed once – stored globally and pre-filled on new keys.',search:'Search',player:'Player',func:'Function',content:'MA content',matype:'MA type',name:'Title',searchPh:'type to filter…',
-     r_pp:'Play / Pause',r_now:'Now playing',r_next:'Next track',r_prev:'Previous track',r_up:'Volume up',r_down:'Volume down',r_stop:'Stop',r_play:'Play Music Assistant',conn:'⚙ Global settings',pl:'Library',change:'✎ Change',iconlbl:'Icon',ic_show:'Show',ic_hide:'Hide (text only)',proglbl:'Progress',pr_show:'Show bar',pr_hide:'Hide',coverlbl:'Background',cv_theme:'Theme colour (global)',cv_color:'Custom colour',colorlbl:'Colour',cv_cover:'Album cover',cv_cover_play:'Album cover (only while playing)',namesize:'Name size',ns_auto:'Automatic',ns_s:'Small',ns_l:'Large',ns_off:'Off (no name)',bg:'Background',bg_default:'Default (blue-grey)',bg_black:'Black',bg_gray:'Grey',bg_blue:'Blue',bg_green:'Green',bg_purple:'Purple',bg_teal:'Teal',bgHint:'Default background for all keys.',acc:'Active colour',accHint:'Colour while media plays (applies to all keys).',ac_green:'Green',ac_blue:'Blue',ac_purple:'Purple',ac_orange:'Orange',ac_red:'Red',ac_teal:'Teal',ac_pink:'Pink'}
+     r_pp:'Play / Pause',r_now:'Now playing',r_next:'Next track',r_prev:'Previous track',r_up:'Volume up',r_down:'Volume down',r_stop:'Stop',r_play:'Play Music Assistant',conn:'⚙ Global settings',pl:'Library',pl2:'Playlist 2',pl3:'Playlist 3',pl4:'Playlist 4',playmode:'Mode',pm_single:'Single',pm_next:'Carousel: tap = next',pm_hold:'Carousel: tap toggle · hold browse',change:'✎ Change',iconlbl:'Icon',ic_show:'Show',ic_hide:'Hide (text only)',proglbl:'Progress',pr_show:'Show bar',pr_hide:'Hide',coverlbl:'Background',cv_theme:'Theme colour (global)',cv_color:'Custom colour',colorlbl:'Colour',cv_cover:'Album cover',cv_cover_play:'Album cover (only while playing)',namesize:'Name size',ns_auto:'Automatic',ns_s:'Small',ns_l:'Large',ns_off:'Off (no name)',bg:'Background',bg_default:'Default (blue-grey)',bg_black:'Black',bg_gray:'Grey',bg_blue:'Blue',bg_green:'Green',bg_purple:'Purple',bg_teal:'Teal',bgHint:'Default background for all keys.',acc:'Active colour',accHint:'Colour while media plays (applies to all keys).',ac_green:'Green',ac_blue:'Blue',ac_purple:'Purple',ac_orange:'Orange',ac_red:'Red',ac_teal:'Teal',ac_pink:'Pink'}
 };
 let L = I18N.de;
 const $ = id => document.getElementById(id);
@@ -127,20 +137,29 @@ function updateMediaVis(){
   showRow('ma_type', play);
   showRow('ma_media', play);
   showRow('playlistPick', play);
+  showRow('playmode', play);
+  const carousel = play && ($('playmode').value==='next' || $('playmode').value==='hold');
+  showRow('playlistPick2', carousel);
+  showRow('playlistPick3', carousel);
+  showRow('playlistPick4', carousel);
   showRow('hideicon', play);
   showRow('hideprogress', ['playpause','play','nowplaying'].indexOf($('role').value)>=0);
   showRow('cover', ['playpause','play','nowplaying'].indexOf($('role').value)>=0);
   showRow('keybg', $('cover').value==='color');
 }
 function populatePlaylists(items){
-  const sel=$('playlistPick'); if(!sel) return;
-  sel.innerHTML=''; const none=document.createElement('option'); none.value=''; none.textContent='—'; sel.appendChild(none);
-  (items||[]).forEach(it=>{ const name=it.name||it.title||it.uri||''; const val=it.uri||it.name||''; if(!val) return; const o=document.createElement('option'); o.value=val; o.textContent=name; sel.appendChild(o); });
-  const cur = settings.ma_media || $('ma_media').value;                    // pre-select the already-saved item
-  if(cur){
-    if(![].some.call(sel.options,o=>o.value===cur)){ const o=document.createElement('option'); o.value=cur; o.textContent=settings.ma_name||cur; sel.appendChild(o); }
-    sel.value=cur;
-  }
+  // fill all four picker slots from the same library, each pre-selecting its saved value
+  const slots = [['playlistPick','ma_media','ma_name'],['playlistPick2','ma_media2','ma_name2'],['playlistPick3','ma_media3','ma_name3'],['playlistPick4','ma_media4','ma_name4']];
+  slots.forEach(([pid, mkey, nkey])=>{
+    const sel=$(pid); if(!sel) return;
+    sel.innerHTML=''; const none=document.createElement('option'); none.value=''; none.textContent='—'; sel.appendChild(none);
+    (items||[]).forEach(it=>{ const name=it.name||it.title||it.uri||''; const val=it.uri||it.name||''; if(!val) return; const o=document.createElement('option'); o.value=val; o.textContent=name; sel.appendChild(o); });
+    const cur = settings[mkey] || (pid==='playlistPick' ? $('ma_media').value : '');
+    if(cur){
+      if(![].some.call(sel.options,o=>o.value===cur)){ const o=document.createElement('option'); o.value=cur; o.textContent=settings[nkey]||cur; sel.appendChild(o); }
+      sel.value=cur;
+    }
+  });
 }
 let plWs=null;
 function loadPlaylists(){
@@ -170,7 +189,7 @@ function loadPlaylists(){
 }
 
 let ws=null, uuid=null, settings={};
-const fields = ['url','token','entity','role','ma_media','ma_type','hideicon','hideprogress','cover','keybg','title','namesize'];
+const fields = ['url','token','entity','role','ma_media','ma_type','playmode','hideicon','hideprogress','cover','keybg','title','namesize'];
 let globalSettings = {};
 function writeGlobal(){
   globalSettings.url = $('url').value; globalSettings.token = $('token').value;
@@ -201,12 +220,16 @@ document.addEventListener('change', e => {
     else { $('keybg').value=''; settings.keybg=''; }
     save(); updateMediaVis();
   }
-  if (e.target.id==='role' || e.target.id==='ma_type') updateMediaVis();
-  if (e.target.id==='role' || e.target.id==='ma_type') loadPlaylists();
+  if (e.target.id==='role' || e.target.id==='ma_type' || e.target.id==='playmode') updateMediaVis();
+  if (e.target.id==='role' || e.target.id==='ma_type' || e.target.id==='playmode') loadPlaylists();
   if (e.target.id==='entity') updatePlayerVisibility();          // collapse list after picking
   if (e.target.id==='bgtheme'){ globalSettings.bg=$('bgtheme').value; writeGlobal(); }
   if (e.target.id==='accent'){ globalSettings.accent=$('accent').value; writeGlobal(); }
   if (e.target.id==='playlistPick'){ const sel=$('playlistPick'); const v=sel.value; if(v){ $('ma_media').value=v; settings.ma_name=sel.options[sel.selectedIndex].textContent; save(); } }
+  if (e.target.id==='playlistPick2' || e.target.id==='playlistPick3' || e.target.id==='playlistPick4'){
+    const sel=$(e.target.id), n=e.target.id.slice(-1), v=sel.value;
+    settings['ma_media'+n]=v; settings['ma_name'+n]= v ? sel.options[sel.selectedIndex].textContent : ''; save();
+  }
 });
 
 let loadTimer=null, haWs=null, allPlayers=[], rendering=false;
