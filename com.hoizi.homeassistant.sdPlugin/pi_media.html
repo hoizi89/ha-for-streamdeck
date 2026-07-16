@@ -121,12 +121,12 @@
   <select id="longpress">
     <option value="" data-i18n="lgp_none"></option>
     <option value="url" data-i18n="lgp_url"></option>
-    <option value="gmail" data-i18n="lgp_gmail"></option>
     <option value="service" data-i18n="lgp_svc"></option>
   </select>
 </div>
 <div class="row"><label data-i18n="longurl"></label><input id="longurl" placeholder="https://…"></div>
-<div class="row"><label data-i18n="longsvc"></label><input id="longservice" placeholder="media_player.turn_on"></div>
+<div class="row"><label data-i18n="longsvc"></label><input id="longservice" list="svclist" placeholder="media_player.turn_on"></div>
+<datalist id="svclist"></datalist>
 
 <script>
 const I18N = {
@@ -222,7 +222,7 @@ function save(){
 document.addEventListener('input', e => {
   if (rendering) return;
   if (fields.indexOf(e.target.id)>=0) save();
-  if (e.target.id==='url'||e.target.id==='token') scheduleLoad();
+  if (e.target.id==='url'||e.target.id==='token'){ scheduleLoad(); loadServices(); }
   if (e.target.id==='search') renderOptions();
 });
 document.addEventListener('change', e => {
@@ -277,6 +277,26 @@ function loadPlayers(){
   haWs.onerror=()=>{};
 }
 
+let svcWs=null;
+function loadServices(){
+  const url=$('url').value, token=$('token').value; if(!url||!token) return;
+  let wsUrl=url.replace(/\/+$/,'')+'/api/websocket'; wsUrl=wsUrl.replace(/^http:/,'ws:').replace(/^https:/,'wss:');
+  try{ if(svcWs) svcWs.close(); svcWs=new WebSocket(wsUrl); }catch(e){ return; }
+  let id=1, getId=0;
+  svcWs.onmessage=(ev)=>{
+    let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+    if(m.type==='auth_required') svcWs.send(JSON.stringify({type:'auth',access_token:token}));
+    else if(m.type==='auth_ok'){ getId=id; svcWs.send(JSON.stringify({id:id++,type:'get_services'})); }
+    else if(m.type==='result' && m.id===getId && m.result){
+      const dl=$('svclist'); if(dl){ dl.innerHTML='';
+        Object.keys(m.result).sort().forEach(dom=>{ Object.keys(m.result[dom]).sort().forEach(svc=>{ const o=document.createElement('option'); o.value=dom+'.'+svc; dl.appendChild(o); }); });
+      }
+      svcWs.close();
+    }
+  };
+  svcWs.onerror=()=>{};
+}
+
 function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo){
   uuid = inUUID;
   try { const info=JSON.parse(inInfo); const lang=(info.application&&info.application.language||'en').slice(0,2); L = I18N[lang]||I18N.en; } catch(e){}
@@ -293,7 +313,7 @@ function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, 
   ws.onopen = ()=>{
     ws.send(JSON.stringify({ event:inRegisterEvent, uuid:inUUID }));
     ws.send(JSON.stringify({ event:'getGlobalSettings', context:inUUID }));
-    scheduleLoad();
+    scheduleLoad(); loadServices();
   };
   ws.onmessage = (ev)=>{
     let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
@@ -308,7 +328,7 @@ function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, 
       const ac=$('accent'); if(ac) ac.value = g.accent||'';
       if (!$('url').value && g.url) $('url').value = g.url;
       if (!$('token').value && g.token){ $('token').value = g.token; save(); }
-      updateConnVisibility(); scheduleLoad(); loadPlaylists();
+      updateConnVisibility(); scheduleLoad(); loadPlaylists(); loadServices();
     }
   };
 }
