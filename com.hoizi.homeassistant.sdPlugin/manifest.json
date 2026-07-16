@@ -55,6 +55,20 @@
           "FontSize": 14
         }
       ]
+    },
+    {
+      "UUID": "com.hoizi.homeassistant.carousel",
+      "Name": "HA Info Carousel",
+      "Icon": "icons/action",
+      "Tooltip": "Cycle several read-only Home Assistant info tiles on one key.",
+      "PropertyInspectorPath": "pi_carousel.html",
+      "States": [
+        {
+          "Image": "icons/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 14
+        }
+      ]
     }
   ]
 }

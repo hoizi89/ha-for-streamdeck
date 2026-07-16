@@ -6,6 +6,8 @@
     "Shows a Home Assistant entity and fires an action on press.": "Zeigt eine Home-Assistant-Entität und löst bei Druck eine Aktion aus.",
     "HA Media / Music Assistant": "HA Media / Music Assistant",
     "Control a media player (play/pause, skip, volume) or start Music Assistant content.": "Steuert einen Media-Player (Play/Pause, Skip, Lautstärke) oder startet Music-Assistant-Inhalte.",
+    "HA Info Carousel": "HA Info-Karussell",
+    "Cycle several read-only Home Assistant info tiles on one key.": "Mehrere Info-Kacheln auf einer Taste durchschalten (nur Anzeige).",
     "Home Assistant": "Home Assistant"
   }
 }

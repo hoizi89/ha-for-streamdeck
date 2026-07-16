@@ -22,6 +22,7 @@ const LOCKHINT = {};           // context -> 'again' | 'hold' | null  (confirm o
 const CYCLE = {};              // context -> { timer, stepped } while a "hold to browse scenes" key is down
 const ACTFLASH = {};           // context -> timestamp of last action press (brief tile flash)
 const CAMIMG = {};             // context -> last successfully loaded camera/image snapshot Image
+const CAROIDX = {};            // context -> current slot index of an info-carousel action
 let ANIM = 0;                  // frame counter for the equalizer animation
 function animateActive(){      // redraw only currently-playing "play" tiles so their eq bars animate
   ANIM++;
@@ -603,9 +604,19 @@ function drawOfflineDot(){        // "marker rechts unten": HA connection lost
   cx.fillStyle='#ff4d4d'; cx.fill();
   cx.restore();
 }
+function drawSlotDots(context){                 // carousel: little position dots at the top
+  const info = ctxInfo[context]; if (!info) return;
+  const slots = (info.settings && info.settings.slots) || []; const n = slots.length; if (n < 2) return;
+  const idx = (((CAROIDX[context]||0) % n) + n) % n;
+  const gap = 9, y = 10, total = (n-1)*gap; let x = 72 - total/2;
+  for (let k=0;k<n;k++){ cx.beginPath(); cx.arc(x, y, 2.4, 0, Math.PI*2); cx.fillStyle = (k===idx) ? '#ffffff' : 'rgba(255,255,255,0.35)'; cx.fill(); x += gap; }
+}
 function push(context){
   const info = ctxInfo[context];
-  if (info && info.settings && (U(info.settings)||GLOBAL.url) && !haReady(info.settings)) drawOfflineDot();
+  if (info){
+    if (info.action === 'com.hoizi.homeassistant.carousel') drawSlotDots(context);
+    if (info.settings && (U(info.settings)||GLOBAL.url) && !haReady(info.settings)) drawOfflineDot();
+  }
   let img; try { img = cv.toDataURL('image/png'); } catch(e){ return; }
   sdSend({ event:'setImage', context, payload:{ image: img, target:0 } });
 }
@@ -849,13 +860,26 @@ function drawMedia(context, cfg){
 
 function draw(context){
   const info = ctxInfo[context]; if (!info) return;
-  if (info.action === 'com.hoizi.homeassistant.media') drawMedia(context, info.settings);
-  else drawEntity(context, info.settings);
+  if (info.action === 'com.hoizi.homeassistant.media'){ drawMedia(context, info.settings); return; }
+  if (info.action === 'com.hoizi.homeassistant.carousel'){
+    const slots = info.settings.slots || [];
+    if (!slots.length){ drawBg(bgTheme({}).top, bgTheme({}).bot, null); glyphSym('+', 88, 64, '#7f8ea0'); push(context); return; }
+    const n = slots.length, i = (((CAROIDX[context]||0) % n) + n) % n;
+    drawEntity(context, slots[i]);        // push() overlays the position dots
+    return;
+  }
+  drawEntity(context, info.settings);
 }
 function renderAll(){ Object.keys(ctxInfo).forEach(draw); }
 function renderForEntity(entity){
   Object.keys(ctxInfo).forEach(ctx => {
     const i = ctxInfo[ctx];
+    if (i.action === 'com.hoizi.homeassistant.carousel'){                 // redraw when the shown slot's entity changes
+      const slots = i.settings.slots || []; if (!slots.length) return;
+      const n = slots.length, idx = (((CAROIDX[ctx]||0) % n) + n) % n;
+      if (slots[idx] && slots[idx].entity === entity) draw(ctx);
+      return;
+    }
     if (i.settings.entity !== entity) return;
     if (i.settings.display==='camera') refreshCam(ctx, i.settings);   // pull a fresh frame (token may have rotated)
     else draw(ctx);
@@ -936,6 +960,7 @@ function onKeyDown(context){
 function doPress(context){
   const info = ctxInfo[context]; if (!info) return;
   const cfg = info.settings;
+  if (info.action === 'com.hoizi.homeassistant.carousel'){ CAROIDX[context] = (CAROIDX[context]||0) + 1; draw(context); return; }
   if (info.action === 'com.hoizi.homeassistant.media'){
     const role = cfg.role || 'playpause';
     if (role==='playpause' || role==='nowplaying') haCall(cfg,'media_player','media_play_pause',cfg.entity);

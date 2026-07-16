@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#ddd;background:#2d2d2d;margin:0;padding:10px}
+  .row{display:flex;align-items:center;margin:6px 0}
+  .row label{flex:0 0 92px;text-align:right;padding-right:8px;color:#9fb3c8}
+  .row input,.row select{flex:1;background:#3d3d3d;border:1px solid #555;color:#fff;padding:5px;border-radius:4px}
+  .hint{color:#888;margin:2px 0 8px 4px;font-size:11px}
+  h3{color:#fff;margin:4px 0 8px}
+  .card{border:1px solid #444;border-radius:6px;margin:6px 0;background:#333}
+  .card.open{border-color:#6aa0e0}
+  .chead{display:flex;justify-content:space-between;align-items:center;padding:7px 9px;cursor:pointer}
+  .chead span a{color:#9fb3c8;text-decoration:none;margin-left:8px;font-size:13px}
+  .card .row{margin:5px 9px}
+  #addSlot{width:100%;padding:8px;margin-top:6px;background:#3a5a8a;border:1px solid #4a86e8;color:#fff;border-radius:5px;cursor:pointer;font-size:12px}
+</style>
+</head>
+<body>
+<h3>HA Info-Karussell</h3>
+<div class="row" style="justify-content:flex-end;margin:0"><a href="#" id="connToggle" style="color:#6aa0e0;text-decoration:none;font-size:11px">⚙ Globale Einstellungen</a></div>
+<div id="connBox">
+  <div class="row"><label>Server-URL</label><input id="url" placeholder="http://homeassistant.local:8123"></div>
+  <div class="row"><label>Token</label><input id="token" type="password"></div>
+  <div class="hint">Nur einmal nötig – wird global gespeichert.</div>
+  <div class="row"><label>Hintergrund</label>
+    <select id="bgtheme">
+      <option value="">Standard (Blaugrau)</option><option value="black">Schwarz</option><option value="gray">Grau</option>
+      <option value="blue">Blau</option><option value="green">Grün</option><option value="purple">Lila</option><option value="teal">Türkis</option>
+    </select>
+  </div>
+</div>
+
+<div class="hint">Jeder Tap auf die Taste zeigt die nächste Info. Jede Info hat eigene Schwellwerte, Farben &amp; Darstellung.</div>
+<div id="slots"></div>
+<button id="addSlot">+ Info hinzufügen</button>
+<datalist id="entlist"></datalist>
+
+<script>
+const $ = id => document.getElementById(id);
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+const DISPLAYS = [['','Wert'],['battery','Batterie'],['bar','Balken'],['climate','Klima'],['weather','Wetter'],['presence','Anwesenheit']];
+const NAMESIZE = [['','Automatisch'],['S','Klein'],['L','Groß'],['off','Aus (kein Name)']];
+const KEYBG    = [['','Wie global'],['black','Schwarz'],['gray','Grau'],['blue','Blau'],['green','Grün'],['purple','Lila'],['teal','Türkis']];
+const ICONS    = [['','Automatisch'],['NONE','— kein —'],['✉','✉ Mail'],['★','★ Stern'],['●','● Punkt'],['■','■ Block'],['▲','▲ Auf'],['▼','▼ Ab'],['♪','♪ Musik'],['☀','☀ Sonne'],['☁','☁ Wolke'],['⌂','⌂ Haus'],['⚙','⚙ Zahnrad'],['⏻','⏻ Power']];
+const COLORS   = [['orange','Orange'],['red','Rot'],['yellow','Gelb'],['green','Grün'],['blue','Blau'],['purple','Lila']];
+const BATOR    = [['h','Liegend'],['v','Stehend']];
+const LBL = { entity:'Entität', display:'Darstellung', title:'Titel', namesize:'Namensgröße', keybg:'Kachel-Farbe', icon:'Icon', warn:'Stufe 1 ab ≥', color1:'Farbe 1', warn2:'Stufe 2 ab ≥', color2:'Farbe 2', batorient:'Ausrichtung' };
+
+function opts(list, cur){ return list.map(([v,l])=>`<option value="${esc(v)}"${v===cur?' selected':''}>${esc(l)}</option>`).join(''); }
+function rIn(i,f,val,ph,list){ return `<div class="row"><label>${LBL[f]}</label><input data-s="${i}" data-f="${f}" value="${esc(val)}" placeholder="${ph||''}"${list?` list="${list}"`:''}></div>`; }
+function rSel(i,f,val,list){ return `<div class="row"><label>${LBL[f]}</label><select data-s="${i}" data-f="${f}">${opts(list,val)}</select></div>`; }
+
+let slots = [], expanded = -1;
+
+function renderSlots(){
+  let html = '';
+  slots.forEach((s, i)=>{
+    if (i === expanded){
+      const d = s.display || '';
+      html += `<div class="card open"><div class="chead"><b>Info ${i+1}</b><span><a href="#" data-act="collapse" data-s="${i}">▲ zu</a><a href="#" data-act="del" data-s="${i}">🗑</a></span></div>`;
+      html += rIn(i,'entity',s.entity||'','sensor.…','entlist');
+      html += rSel(i,'display',d,DISPLAYS);
+      html += rIn(i,'title',s.title||'','');
+      html += rSel(i,'namesize',s.namesize||'',NAMESIZE);
+      html += rSel(i,'keybg',s.keybg||'',KEYBG);
+      if (d===''){ html += rSel(i,'icon',s.icon||'',ICONS) + rIn(i,'warn',s.warn||'','z.B. 1000') + rSel(i,'color1',s.color1||'orange',COLORS) + rIn(i,'warn2',s.warn2||'','optional') + rSel(i,'color2',s.color2||'red',COLORS); }
+      else if (d==='battery'){ html += rSel(i,'batorient',s.batorient||'h',BATOR); }
+      html += `</div>`;
+    } else {
+      const name = s.title || s.entity || '(leer)';
+      const dl = (DISPLAYS.find(o=>o[0]===(s.display||''))||['','Wert'])[1];
+      html += `<div class="card"><div class="chead" data-act="expand" data-s="${i}"><span>${esc(name)} &middot; ${dl}</span><span><a href="#" data-act="del" data-s="${i}">🗑</a></span></div></div>`;
+    }
+  });
+  $('slots').innerHTML = html;
+}
+
+let ws=null, uuid=null, settings={};
+function save(){ settings.slots = slots; if (ws && ws.readyState===1) ws.send(JSON.stringify({ event:'setSettings', context:uuid, payload:settings })); }
+
+let globalSettings = {};
+function writeGlobal(){ globalSettings.url=$('url').value; globalSettings.token=$('token').value; const bt=$('bgtheme'); if(bt) globalSettings.bg=bt.value; if (ws&&ws.readyState===1) ws.send(JSON.stringify({ event:'setGlobalSettings', context:uuid, payload:globalSettings })); }
+function updateConnVisibility(){ const has=$('url').value && $('token').value; const b=$('connBox'); if(b) b.style.display = has ? 'none' : ''; }
+
+document.addEventListener('click', e=>{
+  const a = e.target.closest('[data-act]'); if(!a) return;
+  e.preventDefault();
+  const act = a.getAttribute('data-act'), i = +a.getAttribute('data-s');
+  if (act==='expand'){ expanded=i; renderSlots(); }
+  else if (act==='collapse'){ expanded=-1; renderSlots(); }
+  else if (act==='del'){ slots.splice(i,1); if (expanded>=slots.length) expanded=-1; save(); renderSlots(); }
+});
+function onField(e){
+  const el = e.target.closest('[data-s][data-f]'); if(!el) return;
+  const i = +el.getAttribute('data-s'), f = el.getAttribute('data-f');
+  if (!slots[i]) return;
+  slots[i][f] = el.value; save();
+  if (f==='display') renderSlots();   // conditional fields depend on the display type
+}
+document.addEventListener('input', onField);
+document.addEventListener('change', onField);
+
+let haWs=null, loadTimer=null;
+function scheduleLoad(){ clearTimeout(loadTimer); loadTimer=setTimeout(loadEntities, 500); }
+function loadEntities(){
+  const url=$('url').value, token=$('token').value; if(!url||!token) return;
+  let wsUrl=url.replace(/\/+$/,'')+'/api/websocket'; wsUrl=wsUrl.replace(/^http:/,'ws:').replace(/^https:/,'wss:');
+  try{ if(haWs) haWs.close(); haWs=new WebSocket(wsUrl); }catch(e){ return; }
+  let id=1, getId=0;
+  haWs.onmessage=(ev)=>{
+    let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+    if(m.type==='auth_required') haWs.send(JSON.stringify({type:'auth',access_token:token}));
+    else if(m.type==='auth_ok'){ getId=id; haWs.send(JSON.stringify({id:id++,type:'get_states'})); }
+    else if(m.type==='result' && m.id===getId && Array.isArray(m.result)){
+      const dl=$('entlist'); if(dl){ dl.innerHTML='';
+        m.result.map(s=>({id:s.entity_id,name:(s.attributes&&s.attributes.friendly_name)||s.entity_id}))
+          .sort((a,b)=>a.name.localeCompare(b.name)).slice(0,1500)
+          .forEach(it=>{ const o=document.createElement('option'); o.value=it.id; o.label=it.name; dl.appendChild(o); });
+      }
+      haWs.close();
+    }
+  };
+  haWs.onerror=()=>{};
+}
+
+function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo){
+  uuid = inUUID;
+  try { settings = JSON.parse(inActionInfo).payload.settings || {}; } catch(e){ settings = {}; }
+  slots = Array.isArray(settings.slots) ? settings.slots : [];
+  if (!slots.length) expanded = -1;
+  renderSlots();
+  $('connToggle').addEventListener('click', e=>{ e.preventDefault(); const b=$('connBox'); b.style.display = (b.style.display==='none') ? '' : 'none'; });
+  $('addSlot').addEventListener('click', e=>{ e.preventDefault(); slots.push({ display:'' }); expanded=slots.length-1; save(); renderSlots(); });
+  ['url','token'].forEach(id=>$(id).addEventListener('input', ()=>{ writeGlobal(); scheduleLoad(); updateConnVisibility(); }));
+  $('bgtheme').addEventListener('change', ()=>{ globalSettings.bg=$('bgtheme').value; writeGlobal(); });
+  updateConnVisibility();
+  ws = new WebSocket('ws://127.0.0.1:' + inPort);
+  ws.onopen = ()=>{
+    ws.send(JSON.stringify({ event:inRegisterEvent, uuid:inUUID }));
+    ws.send(JSON.stringify({ event:'getGlobalSettings', context:inUUID }));
+    scheduleLoad();
+  };
+  ws.onmessage = (ev)=>{
+    let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+    if (m.event==='didReceiveSettings' && m.payload && m.payload.settings){
+      settings = m.payload.settings; slots = Array.isArray(settings.slots) ? settings.slots : []; renderSlots();
+    } else if (m.event==='didReceiveGlobalSettings' && m.payload && m.payload.settings){
+      const g = m.payload.settings; globalSettings = Object.assign({}, g);
+      const bt=$('bgtheme'); if(bt) bt.value = g.bg||'';
+      if (!$('url').value && g.url) $('url').value = g.url;
+      if (!$('token').value && g.token) $('token').value = g.token;
+      updateConnVisibility(); scheduleLoad();
+    }
+  };
+}
+</script>
+</body>
+</html>
