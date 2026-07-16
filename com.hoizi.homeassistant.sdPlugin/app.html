@@ -832,7 +832,11 @@ function drawMedia(context, cfg){
   let label = cfg.title || '';
   if (!label){
     if (role==='playpause' && st && st.attributes && st.attributes.media_title) label = st.attributes.media_title;
-    else if (role==='play') label = tgtName || ({playlist:'Playlist',radio:'Radio',album:'Album',artist:'Interpret',track:'Track'}[cfg.ma_type] || 'Wiedergabe');
+    else if (role==='play'){
+      const browsing = !!MACYCLE[context];   // while holding to browse, keep showing the playlist you're landing on
+      if (active && !browsing && st && st.attributes && st.attributes.media_title) label = st.attributes.media_title;   // playing → live track title
+      else label = tgtName || ({playlist:'Playlist',radio:'Radio',album:'Album',artist:'Interpret',track:'Track'}[cfg.ma_type] || 'Wiedergabe');
+    }
     // next/prev/vol/stop: the symbol says it all – no default name unless the user sets a title
   }
   // progress only where it belongs: playpause (reflects the player) or a play tile that is itself active
