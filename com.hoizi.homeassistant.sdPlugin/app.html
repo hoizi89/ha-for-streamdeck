@@ -911,6 +911,7 @@ function longPressCfg(cfg, action){
   if (cfg.display==='light' && cfg.lightpress==='scenehold') return null;
   return cfg.longpress;
 }
+function parseData(s){ if(!s) return null; try { const d = JSON.parse(s); return (d && typeof d==='object') ? d : null; } catch(e){ return null; } }
 function doLongPress(cfg){
   const lp = cfg.longpress;
   if (lp==='url' && cfg.longurl) sdSend({ event:'openUrl', payload:{ url:cfg.longurl } });
@@ -918,7 +919,7 @@ function doLongPress(cfg){
   else if (lp==='service' && cfg.longservice && cfg.longservice.indexOf('.')>0){
     const [dom,svc] = cfg.longservice.split('.');
     const noTarget = ['script','scene','button','input_button','automation','notify'].indexOf(dom)>=0;
-    haCall(cfg, dom, svc, noTarget ? null : cfg.entity);
+    haCall(cfg, dom, svc, noTarget ? null : cfg.entity, parseData(cfg.longservicedata));
   }
 }
 function onKeyDown(context){
@@ -1061,7 +1062,7 @@ function doPress(context){
   else if (press==='service' && cfg.service && cfg.service.indexOf('.')>0){
     const [dom,svc] = cfg.service.split('.');
     const noTarget = ['script','scene','button','input_button','automation','notify'].indexOf(dom)>=0;
-    haCall(cfg, dom, svc, noTarget ? null : cfg.entity);
+    haCall(cfg, dom, svc, noTarget ? null : cfg.entity, parseData(cfg.servicedata));
   }
 }
 
