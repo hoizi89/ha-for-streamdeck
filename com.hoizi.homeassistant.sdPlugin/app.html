@@ -676,6 +676,17 @@ const PALETTE = {
   blue:  { top:'#4a86e8', bot:'#244a86', glow:'#7aa9ff' },
   purple:{ top:'#a479e2', bot:'#5f3e9b', glow:'#c8a6ff' }
 };
+// auto-compact a number with k/M/G prefixes (e.g. 10347 W -> "10.3kW")
+function compactVal(num, decimals, unit){
+  const abs = Math.abs(num);
+  let scaled = num, pfx = '';
+  if (abs>=1e9){ scaled=num/1e9; pfx='G'; }
+  else if (abs>=1e6){ scaled=num/1e6; pfx='M'; }
+  else if (abs>=1e3){ scaled=num/1e3; pfx='k'; }
+  const numStr = pfx ? scaled.toFixed(decimals) : Math.round(num)+'';
+  const u = unit || '';
+  return numStr + (u ? (pfx+u) : pfx);
+}
 function drawEntity(context, cfg){
   const st = stateFor(cfg);
   const raw = st ? st.state : '—';
@@ -702,10 +713,21 @@ function drawEntity(context, cfg){
   drawBg(pal.top, pal.bot, pal.glow);
   let val;
   if (isNaN(num)){ val = localState(raw); }                        // text states → localized (An/Aus/Heizen …)
+  else if (cfg.compact==='1' || cfg.compact==='2'){                // auto W→kW→MW …
+    const haUnit = st && st.attributes && st.attributes.unit_of_measurement;
+    val = compactVal(num, parseInt(cfg.compact), haUnit);
+  }
   else {
-    val = raw;
-    const unit = st && st.attributes && st.attributes.unit_of_measurement;
-    if (unit && unit.length<=3) val = raw + unit;                  // keep %, °C, W, kWh – drop word-units
+    const f = parseFloat(cfg.factor);
+    const hasF = !isNaN(f) && f!==1 && f!==0;                       // e.g. 0.001 to turn W into kW
+    const shown = hasF ? num*f : num;
+    const dp = (cfg.decimals!=='' && cfg.decimals!=null && !isNaN(parseInt(cfg.decimals))) ? parseInt(cfg.decimals) : null;
+    const numStr = (dp!=null) ? shown.toFixed(dp) : (hasF ? (Math.round(shown*1000)/1000)+'' : raw);
+    const unitOv = (cfg.unit||'').trim();                           // custom unit override wins
+    const haUnit = st && st.attributes && st.attributes.unit_of_measurement;
+    val = numStr;
+    if (unitOv) val = numStr + unitOv;
+    else if (haUnit && haUnit.length<=3) val = numStr + haUnit;     // keep %, °C, W, kWh – drop word-units
   }
   const dyc = nameScale(cfg)===0 ? 14 : 0;   // no name → drop content to vertically center it
   const ig = iconGlyph(cfg, st);
