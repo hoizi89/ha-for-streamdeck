@@ -8,6 +8,8 @@ No build step, no add-on: the plugin talks to Home Assistant directly over its W
 
 > Independent hobby project — **not affiliated with Home Assistant, Nabu Casa, or Elgato.**
 
+![Home Assistant Tiles running on a Stream Deck](docs/screenshot.png)
+
 ## Features
 
 Two actions, driven by a small property inspector:
