@@ -47,7 +47,7 @@ const KEYBG    = [['','Wie global'],['black','Schwarz'],['gray','Grau'],['blue',
 const ICONS    = [['','Automatisch'],['NONE','— kein —'],['✉','✉ Mail'],['★','★ Stern'],['●','● Punkt'],['■','■ Block'],['▲','▲ Auf'],['▼','▼ Ab'],['♪','♪ Musik'],['☀','☀ Sonne'],['☁','☁ Wolke'],['⌂','⌂ Haus'],['⚙','⚙ Zahnrad'],['⏻','⏻ Power']];
 const COLORS   = [['orange','Orange'],['red','Rot'],['yellow','Gelb'],['green','Grün'],['blue','Blau'],['purple','Lila']];
 const BATOR    = [['h','Liegend'],['v','Stehend']];
-const COMPACT  = [['','Aus (Original)'],['1','kW/MW · 1 Dezimal'],['2','kW/MW · 2 Dezimal']];
+const COMPACT  = [['','Auto (W→kW)'],['off','Aus (Original)'],['1','kW/MW · 1 Dezimal'],['2','kW/MW · 2 Dezimal']];
 const LBL = { entity:'Entität', display:'Darstellung', title:'Titel', namesize:'Namensgröße', keybg:'Kachel-Farbe', icon:'Icon', warn:'Stufe 1 ab ≥', color1:'Farbe 1', warn2:'Stufe 2 ab ≥', color2:'Farbe 2', batorient:'Ausrichtung', compact:'Kompakt', unit:'Einheit', decimals:'Dezimal' };
 
 function opts(list, cur){ return list.map(([v,l])=>`<option value="${esc(v)}"${v===cur?' selected':''}>${esc(l)}</option>`).join(''); }
@@ -67,7 +67,7 @@ function renderSlots(){
       html += rIn(i,'title',s.title||'','');
       html += rSel(i,'namesize',s.namesize||'',NAMESIZE);
       html += rSel(i,'keybg',s.keybg||'',KEYBG);
-      if (d===''){ html += rSel(i,'icon',s.icon||'',ICONS) + rIn(i,'warn',s.warn||'','z.B. 1000') + rSel(i,'color1',s.color1||'orange',COLORS) + rIn(i,'warn2',s.warn2||'','optional') + rSel(i,'color2',s.color2||'red',COLORS) + rSel(i,'compact',s.compact||'',COMPACT) + rIn(i,'unit',s.unit||'','z.B. kW') + rIn(i,'decimals',s.decimals||'','auto'); }
+      if (d===''){ html += rSel(i,'icon',s.icon||'',ICONS) + rIn(i,'warn',s.warn||'','z.B. 1000') + rSel(i,'color1',s.color1||'orange',COLORS) + rIn(i,'warn2',s.warn2||'','optional') + rSel(i,'color2',s.color2||'red',COLORS) + rSel(i,'compact',s.compact||'',COMPACT) + rIn(i,'decimals',s.decimals||'','auto'); }
       else if (d==='battery'){ html += rSel(i,'batorient',s.batorient||'h',BATOR); }
       html += `</div>`;
     } else {

@@ -713,21 +713,20 @@ function drawEntity(context, cfg){
   drawBg(pal.top, pal.bot, pal.glow);
   let val;
   if (isNaN(num)){ val = localState(raw); }                        // text states → localized (An/Aus/Heizen …)
-  else if (cfg.compact==='1' || cfg.compact==='2'){                // auto W→kW→MW …
-    const haUnit = st && st.attributes && st.attributes.unit_of_measurement;
-    val = compactVal(num, parseInt(cfg.compact), haUnit);
-  }
   else {
-    const f = parseFloat(cfg.factor);
-    const hasF = !isNaN(f) && f!==1 && f!==0;                       // e.g. 0.001 to turn W into kW
-    const shown = hasF ? num*f : num;
-    const dp = (cfg.decimals!=='' && cfg.decimals!=null && !isNaN(parseInt(cfg.decimals))) ? parseInt(cfg.decimals) : null;
-    const numStr = (dp!=null) ? shown.toFixed(dp) : (hasF ? (Math.round(shown*1000)/1000)+'' : raw);
-    const unitOv = (cfg.unit||'').trim();                           // custom unit override wins
+    const cmp = cfg.compact || '';
     const haUnit = st && st.attributes && st.attributes.unit_of_measurement;
-    val = numStr;
-    if (unitOv) val = numStr + unitOv;
-    else if (haUnit && haUnit.length<=3) val = numStr + haUnit;     // keep %, °C, W, kWh – drop word-units
+    const AUTO_UNITS = ['W','Wh','VA','var','VAr'];                 // power/energy → auto k/M
+    const dp = (cfg.decimals!=='' && cfg.decimals!=null && !isNaN(parseInt(cfg.decimals))) ? parseInt(cfg.decimals) : null;
+    if (cmp==='1' || cmp==='2'){                                    // forced compact, chosen decimals
+      val = compactVal(num, parseInt(cmp), haUnit);
+    } else if (cmp!=='off' && AUTO_UNITS.indexOf(haUnit)>=0 && Math.abs(num)>=1000){
+      val = compactVal(num, 1, haUnit);                            // DEFAULT auto: W/Wh ≥1000 → kW/MW (1 decimal)
+    } else {
+      const numStr = (dp!=null) ? num.toFixed(dp) : raw;
+      val = numStr;
+      if (haUnit && haUnit.length<=3) val = numStr + haUnit;       // keep %, °C, W, kWh – drop word-units
+    }
   }
   const dyc = nameScale(cfg)===0 ? 14 : 0;   // no name → drop content to vertically center it
   const ig = iconGlyph(cfg, st);
