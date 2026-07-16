@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#ddd;background:#2d2d2d;margin:0;padding:10px}
+  .row{display:flex;align-items:center;margin:6px 0}
+  .row label{flex:0 0 92px;text-align:right;padding-right:8px;color:#9fb3c8}
+  .row input,.row select{flex:1;background:#3d3d3d;border:1px solid #555;color:#fff;padding:5px;border-radius:4px}
+  .hint{color:#888;margin:2px 0 8px 100px;font-size:11px}
+  h3{color:#fff;margin:4px 0 8px}
+</style>
+</head>
+<body>
+<h3 data-i18n="h">Media / Music Assistant</h3>
+<div class="row" style="justify-content:flex-end;margin:0"><a href="#" id="connToggle" data-i18n="conn" style="color:#6aa0e0;text-decoration:none;font-size:11px">⚙ Verbindung</a></div>
+<div id="connBox">
+  <div class="row"><label data-i18n="url">Server-URL</label><input id="url" placeholder="http://homeassistant.local:8123"></div>
+  <div class="row"><label data-i18n="token">Token</label><input id="token" type="password"></div>
+  <div class="hint" data-i18n="tokenHint">Nur einmal nötig – wird global gespeichert und bei neuen Kacheln vorausgefüllt.</div>
+  <div class="row"><label data-i18n="bg">Hintergrund</label>
+    <select id="bgtheme">
+      <option value="" data-i18n="bg_default">Standard (Blaugrau)</option>
+      <option value="black" data-i18n="bg_black">Schwarz</option>
+      <option value="gray" data-i18n="bg_gray">Grau</option>
+      <option value="blue" data-i18n="bg_blue">Blau</option>
+      <option value="green" data-i18n="bg_green">Grün</option>
+      <option value="purple" data-i18n="bg_purple">Lila</option>
+      <option value="teal" data-i18n="bg_teal">Türkis</option>
+    </select>
+  </div>
+  <div class="hint" data-i18n="bgHint">Standard-Hintergrund für alle Kacheln.</div>
+  <div class="row"><label data-i18n="acc">Aktiv-Farbe</label>
+    <select id="accent">
+      <option value="" data-i18n="ac_green">Grün</option>
+      <option value="blue" data-i18n="ac_blue">Blau</option>
+      <option value="purple" data-i18n="ac_purple">Lila</option>
+      <option value="orange" data-i18n="ac_orange">Orange</option>
+      <option value="red" data-i18n="ac_red">Rot</option>
+      <option value="teal" data-i18n="ac_teal">Türkis</option>
+      <option value="pink" data-i18n="ac_pink">Pink</option>
+    </select>
+  </div>
+  <div class="hint" data-i18n="accHint">Farbe wenn Media läuft (gilt für alle Kacheln).</div>
+</div>
+<div class="row" id="entitySummary" style="display:none"><label data-i18n="player">Player</label><span id="entityName" style="flex:1;padding:5px 0;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span><a href="#" id="entityEdit" data-i18n="change" style="color:#6aa0e0;text-decoration:none;font-size:11px;margin-left:8px">✎ Ändern</a></div>
+<div id="entityBox">
+<div class="row"><label data-i18n="search">Suche</label><input id="search" placeholder="tippen zum Filtern…"></div>
+<div class="row"><label data-i18n="player">Player</label><select id="entity" size="5"></select></div>
+</div>
+<div class="row"><label data-i18n="func">Funktion</label>
+  <select id="role">
+    <option value="playpause" data-i18n="r_pp">Play / Pause</option>
+    <option value="nowplaying" data-i18n="r_now">Aktuelle Wiedergabe</option>
+    <option value="next" data-i18n="r_next">Nächster Titel</option>
+    <option value="prev" data-i18n="r_prev">Vorheriger Titel</option>
+    <option value="volup" data-i18n="r_up">Lauter</option>
+    <option value="voldown" data-i18n="r_down">Leiser</option>
+    <option value="stop" data-i18n="r_stop">Stopp</option>
+    <option value="play" data-i18n="r_play">Music Assistant abspielen</option>
+  </select>
+</div>
+<div class="row"><label data-i18n="pl">Playlist</label><select id="playlistPick"><option value="">— laden… —</option></select></div>
+<div class="row"><label data-i18n="content">MA-Inhalt</label><input id="ma_media" placeholder="oder Name/URI manuell"></div>
+<div class="row"><label data-i18n="matype">MA-Typ</label>
+  <select id="ma_type">
+    <option value="playlist">playlist</option><option value="album">album</option>
+    <option value="artist">artist</option><option value="track">track</option><option value="radio">radio</option>
+  </select>
+</div>
+<div class="row"><label data-i18n="iconlbl">Icon</label>
+  <select id="hideicon">
+    <option value="" data-i18n="ic_show">Anzeigen</option>
+    <option value="1" data-i18n="ic_hide">Ausblenden (nur Text)</option>
+  </select>
+</div>
+<div class="row"><label data-i18n="proglbl">Fortschritt</label>
+  <select id="hideprogress">
+    <option value="" data-i18n="pr_show">Balken anzeigen</option>
+    <option value="1" data-i18n="pr_hide">Ausblenden</option>
+  </select>
+</div>
+<div class="row"><label data-i18n="coverlbl">Hintergrund</label>
+  <select id="cover">
+    <option value="" data-i18n="cv_theme">Theme-Farbe (global)</option>
+    <option value="color" data-i18n="cv_color">Andere Farbe</option>
+    <option value="1" data-i18n="cv_cover">Album-Cover</option>
+    <option value="2" data-i18n="cv_cover_play">Album-Cover (nur beim Abspielen)</option>
+  </select>
+</div>
+<div class="row"><label data-i18n="colorlbl">Farbe</label>
+  <select id="keybg">
+    <option value="black" data-i18n="bg_black">Schwarz</option>
+    <option value="gray" data-i18n="bg_gray">Grau</option>
+    <option value="blue" data-i18n="bg_blue">Blau</option>
+    <option value="green" data-i18n="bg_green">Grün</option>
+    <option value="purple" data-i18n="bg_purple">Lila</option>
+    <option value="teal" data-i18n="bg_teal">Türkis</option>
+  </select>
+</div>
+<div class="row"><label data-i18n="name">Titel</label><input id="title"></div>
+<div class="row"><label data-i18n="namesize">Namensgröße</label>
+  <select id="namesize">
+    <option value="" data-i18n="ns_auto">Automatisch</option>
+    <option value="S" data-i18n="ns_s">Klein</option>
+    <option value="L" data-i18n="ns_l">Groß</option>
+    <option value="off" data-i18n="ns_off">Aus (kein Name)</option>
+  </select>
+</div>
+
+<script>
+const I18N = {
+  de:{h:'Media / Music Assistant',url:'Server-URL',token:'Token',tokenHint:'Nur einmal nötig – wird global gespeichert und bei neuen Kacheln vorausgefüllt.',search:'Suche',player:'Player',func:'Funktion',content:'MA-Inhalt',matype:'MA-Typ',name:'Titel',searchPh:'tippen zum Filtern…',
+     r_pp:'Play / Pause',r_now:'Aktuelle Wiedergabe',r_next:'Nächster Titel',r_prev:'Vorheriger Titel',r_up:'Lauter',r_down:'Leiser',r_stop:'Stopp',r_play:'Music Assistant abspielen',conn:'⚙ Globale Einstellungen',pl:'Bibliothek',change:'✎ Ändern',iconlbl:'Icon',ic_show:'Anzeigen',ic_hide:'Ausblenden (nur Text)',proglbl:'Fortschritt',pr_show:'Balken anzeigen',pr_hide:'Ausblenden',coverlbl:'Hintergrund',cv_theme:'Theme-Farbe (global)',cv_color:'Andere Farbe',colorlbl:'Farbe',cv_cover:'Album-Cover',cv_cover_play:'Album-Cover (nur beim Abspielen)',namesize:'Namensgröße',ns_auto:'Automatisch',ns_s:'Klein',ns_l:'Groß',ns_off:'Aus (kein Name)',bg:'Hintergrund',bg_default:'Standard (Blaugrau)',bg_black:'Schwarz',bg_gray:'Grau',bg_blue:'Blau',bg_green:'Grün',bg_purple:'Lila',bg_teal:'Türkis',bgHint:'Standard-Hintergrund für alle Kacheln.',acc:'Aktiv-Farbe',accHint:'Farbe wenn Media läuft (gilt für alle Kacheln).',ac_green:'Grün',ac_blue:'Blau',ac_purple:'Lila',ac_orange:'Orange',ac_red:'Rot',ac_teal:'Türkis',ac_pink:'Pink'},
+  en:{h:'Media / Music Assistant',url:'Server URL',token:'Token',tokenHint:'Needed once – stored globally and pre-filled on new keys.',search:'Search',player:'Player',func:'Function',content:'MA content',matype:'MA type',name:'Title',searchPh:'type to filter…',
+     r_pp:'Play / Pause',r_now:'Now playing',r_next:'Next track',r_prev:'Previous track',r_up:'Volume up',r_down:'Volume down',r_stop:'Stop',r_play:'Play Music Assistant',conn:'⚙ Global settings',pl:'Library',change:'✎ Change',iconlbl:'Icon',ic_show:'Show',ic_hide:'Hide (text only)',proglbl:'Progress',pr_show:'Show bar',pr_hide:'Hide',coverlbl:'Background',cv_theme:'Theme colour (global)',cv_color:'Custom colour',colorlbl:'Colour',cv_cover:'Album cover',cv_cover_play:'Album cover (only while playing)',namesize:'Name size',ns_auto:'Automatic',ns_s:'Small',ns_l:'Large',ns_off:'Off (no name)',bg:'Background',bg_default:'Default (blue-grey)',bg_black:'Black',bg_gray:'Grey',bg_blue:'Blue',bg_green:'Green',bg_purple:'Purple',bg_teal:'Teal',bgHint:'Default background for all keys.',acc:'Active colour',accHint:'Colour while media plays (applies to all keys).',ac_green:'Green',ac_blue:'Blue',ac_purple:'Purple',ac_orange:'Orange',ac_red:'Red',ac_teal:'Teal',ac_pink:'Pink'}
+};
+let L = I18N.de;
+const $ = id => document.getElementById(id);
+function applyLang(){ document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n'); if(L[k]!=null) el.textContent=L[k];}); const s=$('search'); if(s) s.placeholder=L.searchPh; }
+function updateConnVisibility(){ const has=$('url').value && $('token').value; const b=$('connBox'); if(b) b.style.display = has ? 'none' : ''; }
+function setPlayerName(){ const id=settings.entity; let name=id||'—'; const e=allPlayers.find(x=>x.id===id); if(e) name=e.name; const el=$('entityName'); if(el) el.textContent=name; }
+function updatePlayerVisibility(){ const has=!!settings.entity; const box=$('entityBox'), sum=$('entitySummary'); if(box) box.style.display=has?'none':''; if(sum) sum.style.display=has?'':'none'; setPlayerName(); }
+function showRow(id,on){ const el=document.getElementById(id); if(!el) return; const row=el.closest('.row'); if(row) row.style.display=on?'':'none'; }
+function updateMediaVis(){
+  const play = $('role').value==='play';
+  showRow('ma_type', play);
+  showRow('ma_media', play);
+  showRow('playlistPick', play);
+  showRow('hideicon', play);
+  showRow('hideprogress', ['playpause','play','nowplaying'].indexOf($('role').value)>=0);
+  showRow('cover', ['playpause','play','nowplaying'].indexOf($('role').value)>=0);
+  showRow('keybg', $('cover').value==='color');
+}
+function populatePlaylists(items){
+  const sel=$('playlistPick'); if(!sel) return;
+  sel.innerHTML=''; const none=document.createElement('option'); none.value=''; none.textContent='—'; sel.appendChild(none);
+  (items||[]).forEach(it=>{ const name=it.name||it.title||it.uri||''; const val=it.uri||it.name||''; if(!val) return; const o=document.createElement('option'); o.value=val; o.textContent=name; sel.appendChild(o); });
+  const cur = settings.ma_media || $('ma_media').value;                    // pre-select the already-saved item
+  if(cur){
+    if(![].some.call(sel.options,o=>o.value===cur)){ const o=document.createElement('option'); o.value=cur; o.textContent=settings.ma_name||cur; sel.appendChild(o); }
+    sel.value=cur;
+  }
+}
+let plWs=null;
+function loadPlaylists(){
+  const url=$('url').value, token=$('token').value;
+  if(!url||!token || $('role').value!=='play') return;
+  let wsUrl=url.replace(/\/+$/,'')+'/api/websocket'; wsUrl=wsUrl.replace(/^http:/,'ws:').replace(/^https:/,'wss:');
+  try{ if(plWs) plWs.close(); plWs=new WebSocket(wsUrl);}catch(e){ return; }
+  let id=1, entriesId=0, libId=0;
+  plWs.onmessage=(ev)=>{
+    let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+    if(m.type==='auth_required') plWs.send(JSON.stringify({type:'auth',access_token:token}));
+    else if(m.type==='auth_ok'){ entriesId=id; plWs.send(JSON.stringify({id:id++,type:'config_entries/get'})); }
+    else if(m.type==='result' && m.id===entriesId){
+      const list=Array.isArray(m.result)?m.result:((m.result&&m.result.entries)||[]);
+      const ma=list.find(e=>e.domain==='music_assistant');
+      if(!ma){ plWs.close(); return; }
+      libId=id;
+      const mt = ($('ma_type').value || 'playlist');
+      plWs.send(JSON.stringify({id:id++,type:'call_service',domain:'music_assistant',service:'get_library',service_data:{config_entry_id:ma.entry_id,media_type:mt,limit:200},return_response:true}));
+    } else if(m.type==='result' && m.id===libId){
+      let items=[]; const r=m.result&&m.result.response;
+      if(r){ items=r.items||r.playlists||(Array.isArray(r)?r:[]); }
+      populatePlaylists(items); plWs.close();
+    }
+  };
+  plWs.onerror=()=>{};
+}
+
+let ws=null, uuid=null, settings={};
+const fields = ['url','token','entity','role','ma_media','ma_type','hideicon','hideprogress','cover','keybg','title','namesize'];
+let globalSettings = {};
+function writeGlobal(){
+  globalSettings.url = $('url').value; globalSettings.token = $('token').value;
+  const bt=$('bgtheme'); if(bt) globalSettings.bg = bt.value;
+  const ac=$('accent'); if(ac) globalSettings.accent = ac.value;
+  if (ws && ws.readyState===1) ws.send(JSON.stringify({ event:'setGlobalSettings', context:uuid, payload:globalSettings }));
+}
+function save(){
+  fields.forEach(f => { if (f!=='entity') settings[f] = $(f).value; });
+  const ev = $('entity').value;
+  if (ev) settings.entity = ev;          // keep chosen player – never wipe it with an empty value
+  if (ws && ws.readyState===1){
+    ws.send(JSON.stringify({ event:'setSettings', context:uuid, payload:settings }));
+    if ($('url').value && $('token').value) writeGlobal();   // preserves global bg theme
+  }
+}
+document.addEventListener('input', e => {
+  if (rendering) return;
+  if (fields.indexOf(e.target.id)>=0) save();
+  if (e.target.id==='url'||e.target.id==='token') scheduleLoad();
+  if (e.target.id==='search') renderOptions();
+});
+document.addEventListener('change', e => {
+  if (rendering) return;
+  if (fields.indexOf(e.target.id)>=0) save();
+  if (e.target.id==='cover'){                        // "Andere Farbe" reveals the colour picker
+    if ($('cover').value==='color'){ if(!$('keybg').value){ $('keybg').value='black'; settings.keybg='black'; } }
+    else { $('keybg').value=''; settings.keybg=''; }
+    save(); updateMediaVis();
+  }
+  if (e.target.id==='role' || e.target.id==='ma_type') updateMediaVis();
+  if (e.target.id==='role' || e.target.id==='ma_type') loadPlaylists();
+  if (e.target.id==='entity') updatePlayerVisibility();          // collapse list after picking
+  if (e.target.id==='bgtheme'){ globalSettings.bg=$('bgtheme').value; writeGlobal(); }
+  if (e.target.id==='accent'){ globalSettings.accent=$('accent').value; writeGlobal(); }
+  if (e.target.id==='playlistPick'){ const sel=$('playlistPick'); const v=sel.value; if(v){ $('ma_media').value=v; settings.ma_name=sel.options[sel.selectedIndex].textContent; save(); } }
+});
+
+let loadTimer=null, haWs=null, allPlayers=[], rendering=false;
+function scheduleLoad(){ clearTimeout(loadTimer); loadTimer=setTimeout(loadPlayers, 500); }
+function renderOptions(){
+  rendering = true;
+  const q=($('search').value||'').toLowerCase();
+  const cur=settings.entity || $('entity').value;
+  const list=allPlayers.filter(e=>!q||e.name.toLowerCase().indexOf(q)>=0);
+  const sel=$('entity'); sel.innerHTML='';
+  list.forEach(it=>{ const o=document.createElement('option'); o.value=it.id; o.textContent=it.name; sel.appendChild(o); });
+  if(cur){ if(!list.some(i=>i.id===cur)){ const o=document.createElement('option'); o.value=cur; o.textContent=cur; sel.appendChild(o);} sel.value=cur; }
+  rendering = false;
+  setPlayerName();
+}
+function loadPlayers(){
+  const url=$('url').value, token=$('token').value; if(!url||!token) return;
+  let wsUrl=url.replace(/\/+$/,'')+'/api/websocket'; wsUrl=wsUrl.replace(/^http:/,'ws:').replace(/^https:/,'wss:');
+  try{ if(haWs) haWs.close(); haWs=new WebSocket(wsUrl); }catch(e){ return; }
+  let id=1, getId=0;
+  haWs.onmessage=(ev)=>{
+    let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+    if(m.type==='auth_required') haWs.send(JSON.stringify({type:'auth',access_token:token}));
+    else if(m.type==='auth_ok'){ getId=id; haWs.send(JSON.stringify({id:id++,type:'get_states'})); }
+    else if(m.type==='result' && m.id===getId && Array.isArray(m.result)){
+      allPlayers=m.result.filter(s=>s.entity_id.indexOf('media_player.')===0)
+        .map(s=>({id:s.entity_id,name:(s.attributes&&s.attributes.friendly_name)||s.entity_id}))
+        .sort((a,b)=>a.name.localeCompare(b.name));
+      renderOptions(); haWs.close();
+    }
+  };
+  haWs.onerror=()=>{};
+}
+
+function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo){
+  uuid = inUUID;
+  try { const info=JSON.parse(inInfo); const lang=(info.application&&info.application.language||'en').slice(0,2); L = I18N[lang]||I18N.en; } catch(e){}
+  applyLang();
+  try { settings = JSON.parse(inActionInfo).payload.settings || {}; } catch(e){ settings = {}; }
+  fields.forEach(f => { if (settings[f]!=null && $(f)) $(f).value = settings[f]; });
+  $('connToggle').addEventListener('click', e=>{ e.preventDefault(); const b=$('connBox'); b.style.display = (b.style.display==='none') ? '' : 'none'; });
+  $('entityEdit').addEventListener('click', e=>{ e.preventDefault(); $('entityBox').style.display=''; $('entitySummary').style.display='none'; });
+  updateConnVisibility();
+  updatePlayerVisibility();
+  updateMediaVis();
+  loadPlaylists();
+  ws = new WebSocket('ws://127.0.0.1:' + inPort);
+  ws.onopen = ()=>{
+    ws.send(JSON.stringify({ event:inRegisterEvent, uuid:inUUID }));
+    ws.send(JSON.stringify({ event:'getGlobalSettings', context:inUUID }));
+    scheduleLoad();
+  };
+  ws.onmessage = (ev)=>{
+    let m; try{ m=JSON.parse(ev.data); }catch(e){ return; }
+    if (m.event==='didReceiveSettings' && m.payload && m.payload.settings){
+      settings = m.payload.settings;
+      fields.forEach(f => { if (settings[f]!=null && $(f)) $(f).value = settings[f]; });
+      renderOptions(); updatePlayerVisibility(); updateMediaVis();
+    } else if (m.event==='didReceiveGlobalSettings' && m.payload && m.payload.settings){
+      const g = m.payload.settings;
+      globalSettings = Object.assign({}, g);
+      const bt=$('bgtheme'); if(bt) bt.value = g.bg||'';
+      const ac=$('accent'); if(ac) ac.value = g.accent||'';
+      if (!$('url').value && g.url) $('url').value = g.url;
+      if (!$('token').value && g.token){ $('token').value = g.token; save(); }
+      updateConnVisibility(); scheduleLoad(); loadPlaylists();
+    }
+  };
+}
+</script>
+</body>
+</html>

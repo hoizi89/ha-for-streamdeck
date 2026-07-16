@@ -1,0 +1,40 @@
+{
+  "SDKVersion": 2,
+  "Author": "hoizi",
+  "Name": "Home Assistant Tiles",
+  "Description": "Show and control Home Assistant on your keys: lights, switches, locks, climate, covers, vacuum, media & Music Assistant, camera snapshots, weather, presence, scenes/scripts and sensor values.",
+  "Version": "0.2.0",
+  "URL": "https://www.home-assistant.io",
+  "Icon": "icons/plugin",
+  "Category": "Home Assistant",
+  "CategoryIcon": "icons/plugin",
+  "CodePath": "app.html",
+  "OS": [
+    { "Platform": "windows", "MinimumVersion": "10" },
+    { "Platform": "mac", "MinimumVersion": "10.15" }
+  ],
+  "Software": { "MinimumVersion": "6.0" },
+  "Nodejs": { "Version": "20", "Debug": "" },
+  "Actions": [
+    {
+      "UUID": "com.hoizi.homeassistant.entity",
+      "Name": "HA Entity",
+      "Icon": "icons/action",
+      "Tooltip": "Shows a Home Assistant entity and fires an action on press.",
+      "PropertyInspectorPath": "pi.html",
+      "States": [
+        { "Image": "icons/key", "TitleAlignment": "bottom", "FontSize": "14" }
+      ]
+    },
+    {
+      "UUID": "com.hoizi.homeassistant.media",
+      "Name": "HA Media / Music Assistant",
+      "Icon": "icons/action",
+      "Tooltip": "Control a media player (play/pause, skip, volume) or start Music Assistant content.",
+      "PropertyInspectorPath": "pi_media.html",
+      "States": [
+        { "Image": "icons/key", "TitleAlignment": "bottom", "FontSize": "14" }
+      ]
+    }
+  ]
+}

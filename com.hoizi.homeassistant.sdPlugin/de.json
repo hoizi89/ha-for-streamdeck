@@ -1,0 +1,11 @@
+{
+  "Localization": {
+    "Home Assistant Tiles": "Home Assistant Kacheln",
+    "Show and control Home Assistant on your keys: lights, switches, locks, climate, covers, vacuum, media & Music Assistant, camera snapshots, weather, presence, scenes/scripts and sensor values.": "Home Assistant auf den Tasten anzeigen und steuern: Licht, Schalter, Schlösser, Klima, Rollos, Staubsauger, Media & Music Assistant, Kamera-Schnappschüsse, Wetter, Anwesenheit, Szenen/Skripte und Sensorwerte.",
+    "HA Entity": "HA Entität",
+    "Shows a Home Assistant entity and fires an action on press.": "Zeigt eine Home-Assistant-Entität und löst bei Druck eine Aktion aus.",
+    "HA Media / Music Assistant": "HA Media / Music Assistant",
+    "Control a media player (play/pause, skip, volume) or start Music Assistant content.": "Steuert einen Media-Player (Play/Pause, Skip, Lautstärke) oder startet Music-Assistant-Inhalte.",
+    "Home Assistant": "Home Assistant"
+  }
+}

@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><title>HA Tiles</title>
+<style>@font-face{ font-family:'MDI'; src:url('fonts/mdi.woff2') format('woff2'); font-display:block; }</style>
+</head>
+<body>
+<canvas id="cv" width="144" height="144" style="display:none"></canvas>
+<script src="mdi-icons.js"></script>
+<script>
+// ---- Stream Deck <-> Home Assistant bridge (classic SDK, no build step) ----
+
+let sd = null;
+let myUUID = null;
+let GLOBAL = {};               // shared connection { url, token } stored once
+let STARTED = {};              // player entity_id -> last ma_media started from the deck (for playlist "active" marking)
+function persistStarted(){ GLOBAL.started = STARTED; sdSend({ event:'setGlobalSettings', context:myUUID, payload:GLOBAL }); }
+const SCENEIDX = {};           // context -> current index for scene cycling
+const LOCKPEND = {};           // context -> timestamp of first press (double-press confirm)
+const HOLD = {};               // context -> { timer, fired } while a "hold to confirm" key is down
+const LOCKHINT = {};           // context -> 'again' | 'hold' | null  (confirm overlay on the tile)
+const CYCLE = {};              // context -> { timer, stepped } while a "hold to browse scenes" key is down
+const ACTFLASH = {};           // context -> timestamp of last action press (brief tile flash)
+const CAMIMG = {};             // context -> last successfully loaded camera/image snapshot Image
+let ANIM = 0;                  // frame counter for the equalizer animation
+function animateActive(){      // redraw only currently-playing "play" tiles so their eq bars animate
+  ANIM++;
+  Object.keys(ctxInfo).forEach(ctx => {
+    const info = ctxInfo[ctx];
+    if (!info || info.action !== 'com.hoizi.homeassistant.media') return;
+    const r = info.settings.role || 'playpause';
+    if (['play','playpause','nowplaying'].indexOf(r) < 0) return;   // only tiles that animate (eq bars / progress)
+    const st = stateFor(info.settings);
+    if (st && st.state === 'playing') draw(ctx);
+  });
+}
+setInterval(animateActive, 340);
+// ---- camera / image snapshot refresh ----
+function refreshCam(context, cfg){
+  const st = stateFor(cfg);
+  const ep = st && st.attributes && st.attributes.entity_picture;   // signed /api/(camera|image)_proxy/… url
+  if (!ep){ draw(context); return; }
+  const base = (U(cfg)||'').replace(/\/+$/,'');
+  const url = (ep.charAt(0)==='/' ? base+ep : ep) + (ep.indexOf('?')>=0?'&':'?') + 'sd=' + Date.now();  // cache-buster → fresh frame
+  const img = new Image(); img.crossOrigin = 'anonymous';
+  img.onload = ()=>{ CAMIMG[context] = img; draw(context); };
+  img.onerror = ()=>{};
+  img.src = url;
+}
+const CAMLAST = {};   // context -> last camera refresh (honours per-tile refresh rate)
+setInterval(()=>{
+  const now = Date.now();
+  Object.keys(ctxInfo).forEach(ctx=>{
+    const i = ctxInfo[ctx];
+    if (!i || i.settings.display!=='camera') return;
+    const rate = (parseFloat(i.settings.camrate)||4) * 1000;
+    if (now - (CAMLAST[ctx]||0) >= rate){ CAMLAST[ctx] = now; refreshCam(ctx, i.settings); }
+  });
+}, 1000);
+let LANG = 'de';
+const STATE_L = {
+  de: { on:'An', off:'Aus', open:'Offen', closed:'Geschlossen', opening:'Öffnet', closing:'Schließt',
+    home:'Zuhause', not_home:'Unterwegs', playing:'Spielt', paused:'Pause', idle:'Bereit', standby:'Standby',
+    heat:'Heizen', cool:'Kühlen', auto:'Auto', dry:'Trocknen', fan_only:'Lüften', heat_cool:'Auto',
+    heating:'Heizt', cooling:'Kühlt', 'off':'Aus', docked:'Dock', cleaning:'Reinigt', returning:'Rückkehr', error:'Fehler',
+    locked:'Verriegelt', unlocked:'Entriegelt', jammed:'Klemmt', locking:'Verriegelt…', unlocking:'Entriegelt…',
+    active:'Aktiv', mowing:'Mäht', paused_:'Pause',
+    charging:'Lädt', discharging:'Entlädt', unavailable:'—', unknown:'—', on_:'An' }
+};
+function localState(raw){
+  if (raw==null || raw==='') return '—';
+  const m = STATE_L[LANG]; if (m && m[raw]!=null) return m[raw];
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+const ctxInfo = {};            // context -> { action, settings }
+const cv = document.getElementById('cv');
+const cx = cv.getContext('2d');
+
+// effective url/token: per-key value wins, else the global default
+function U(cfg){ return (cfg && cfg.url) || GLOBAL.url; }
+function T(cfg){ return (cfg && cfg.token) || GLOBAL.token; }
+
+// ---- Home Assistant connection (one per url+token) ----
+const haConns = {};
+function haKey(url, token){ return (url||'') + '|' + (token||''); }
+
+function connectHA(url, token){
+  const key = haKey(url, token);
+  if (!url || !token) return null;
+  let c = haConns[key];
+  if (c && (c.ready || c.connecting)) return c;
+  c = haConns[key] = { states:{}, ready:false, connecting:true, id:1, url, token };
+  let wsUrl = url.replace(/\/+$/,'') + '/api/websocket';
+  wsUrl = wsUrl.replace(/^http:/,'ws:').replace(/^https:/,'wss:');
+  try { c.ws = new WebSocket(wsUrl); } catch(e){ c.connecting=false; return c; }
+  c.ws.onclose = ()=>{ c.ready=false; c.connecting=false; renderAll(); setTimeout(()=>connectHA(url,token), 5000); };
+  c.ws.onmessage = (ev)=>{
+    let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+    if (m.type === 'auth_required') {
+      c.ws.send(JSON.stringify({ type:'auth', access_token: token }));
+    } else if (m.type === 'auth_ok') {
+      c.ready = true; c.connecting = false;
+      c.ws.send(JSON.stringify({ id: c.id++, type:'subscribe_events', event_type:'state_changed' }));
+      c.getStatesId = c.id;
+      c.ws.send(JSON.stringify({ id: c.id++, type:'get_states' }));
+    } else if (m.type === 'auth_invalid') {
+      c.ready = false; c.connecting = false;
+    } else if (m.type === 'result' && m.id === c.getStatesId && Array.isArray(m.result)) {
+      m.result.forEach(s => { c.states[s.entity_id] = s; });
+      renderAll();
+    } else if (m.type === 'event' && m.event && m.event.event_type === 'state_changed') {
+      const d = m.event.data;
+      if (d && d.new_state) { c.states[d.entity_id] = d.new_state; renderForEntity(d.entity_id); }
+    }
+  };
+  return c;
+}
+
+function haCall(cfg, domain, service, entity_id, data){
+  const c = haConns[haKey(U(cfg), T(cfg))];
+  if (!c || !c.ready) return;
+  const msg = { id: c.id++, type:'call_service', domain, service };
+  if (entity_id) msg.target = { entity_id };    // scripts/scenes/buttons take no entity target
+  if (data) msg.service_data = data;
+  c.ws.send(JSON.stringify(msg));
+}
+
+function stateFor(cfg){
+  const c = haConns[haKey(U(cfg), T(cfg))];
+  return c ? (c.states[cfg.entity] || null) : null;
+}
+
+// ---- rendering helpers ----
+function roundRectPath(x,y,w,h,r){
+  cx.beginPath();
+  cx.moveTo(x+r,y);
+  cx.arcTo(x+w,y,x+w,y+h,r);
+  cx.arcTo(x+w,y+h,x,y+h,r);
+  cx.arcTo(x,y+h,x,y,r);
+  cx.arcTo(x,y,x+w,y,r);
+  cx.closePath();
+}
+function drawBg(top, bottom, glow){
+  cx.clearRect(0,0,144,144);
+  roundRectPath(4,4,136,136,20);
+  const g = cx.createLinearGradient(0,0,0,144);
+  g.addColorStop(0, top); g.addColorStop(1, bottom);
+  cx.fillStyle = g; cx.fill();
+  // subtle inner highlight
+  roundRectPath(4,4,136,68,20);
+  cx.fillStyle = 'rgba(255,255,255,0.05)'; cx.fill();
+  if (glow){ cx.lineWidth=3; roundRectPath(5,5,134,134,19); cx.strokeStyle=glow; cx.stroke(); }
+}
+const THEMES = {
+  '':     { top:'#33414f', bot:'#161d25' },
+  black:  { top:'#2a2a2a', bot:'#000000' },
+  gray:   { top:'#4b4b4b', bot:'#1e1e1e' },
+  blue:   { top:'#2c4a6e', bot:'#0e1b2b' },
+  green:  { top:'#2c4a3a', bot:'#0e1b14' },
+  purple: { top:'#3d2c5a', bot:'#160e26' },
+  teal:   { top:'#1f4a4a', bot:'#0a1f1f' }
+};
+function bgTheme(cfg){ const k = (cfg && cfg.keybg) || GLOBAL.bg || ''; return THEMES[k] || THEMES['']; }
+// colour used when a media tile is actively playing (global "Aktiv-Farbe")
+const ACCENTS = {
+  '':     { top:'#2ec26a', bot:'#177a41', glow:'#57e08e' },
+  blue:   { top:'#3d7be0', bot:'#1c3f7a', glow:'#82b0ff' },
+  purple: { top:'#8a5cd6', bot:'#4a2c8f', glow:'#c1a3ff' },
+  orange: { top:'#e6902e', bot:'#8a4f0c', glow:'#ffc078' },
+  red:    { top:'#e0524a', bot:'#8a1f18', glow:'#ff9a90' },
+  teal:   { top:'#1fb7b0', bot:'#0d5f5b', glow:'#6ff0e8' },
+  pink:   { top:'#e05a9c', bot:'#8a2058', glow:'#ffa0cf' }
+};
+function accent(){ return ACCENTS[GLOBAL.accent||''] || ACCENTS['']; }
+function glyphSym(ch, y, size, color){
+  cx.fillStyle = color || '#ffffff';
+  cx.textAlign='center';
+  cx.font = '700 ' + size + 'px "Segoe UI Symbol","Segoe UI",Arial,sans-serif';
+  cx.fillText(ch, 72, y);
+}
+function drawSpeaker(cx0, cy, plus){
+  cx.fillStyle = '#ffffff';
+  // speaker body + cone
+  cx.beginPath();
+  cx.moveTo(cx0-24, cy-9); cx.lineTo(cx0-12, cy-9); cx.lineTo(cx0+2, cy-22);
+  cx.lineTo(cx0+2, cy+22); cx.lineTo(cx0-12, cy+9); cx.lineTo(cx0-24, cy+9);
+  cx.closePath(); cx.fill();
+  // plus / minus
+  cx.strokeStyle = '#ffffff'; cx.lineCap='round'; cx.lineWidth = 6;
+  cx.beginPath();
+  cx.moveTo(cx0+13, cy); cx.lineTo(cx0+29, cy);
+  if (plus){ cx.moveTo(cx0+21, cy-8); cx.lineTo(cx0+21, cy+8); }
+  cx.stroke();
+}
+function wrapText(txt, maxW){
+  const words = (txt||'').split(' ');
+  const lines = []; let cur = '';
+  for (const w of words){
+    const t = cur ? cur+' '+w : w;
+    if (cx.measureText(t).width <= maxW || !cur) cur = t; else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function bottomName(name, scale, yShift){
+  if (scale === 0) return;               // name hidden
+  scale = scale || 1; yShift = yShift || 0;
+  name = (name||'').trim();
+  cx.fillStyle='#dbe5f0'; cx.textAlign='center';
+  const big = Math.round(19*scale);
+  cx.font='700 '+big+'px "Segoe UI",Arial,sans-serif';
+  if (cx.measureText(name).width <= 132){ cx.fillText(name, 72, 133-yShift, 132); return; }
+  // wrap onto two lines by words
+  const sm = Math.round(16*scale);
+  cx.font='700 '+sm+'px "Segoe UI",Arial,sans-serif';
+  const words = name.split(' ');
+  if (words.length===1){                                  // one long word → split across two lines, don't truncate
+    let cut = name.length;
+    while (cut>1 && cx.measureText(name.slice(0,cut)).width>132) cut--;
+    let a = name.slice(0,cut), b = name.slice(cut);
+    while (cx.measureText(b).width>132 && b.length>2) b = b.slice(0,-2)+'…';
+    cx.fillText(a, 72, 118 + (big-19) - yShift, 132);
+    cx.fillText(b, 72, 138 - yShift, 132);
+    return;
+  }
+  let l1='', l2='';
+  for (const w of words){
+    if (!l2 && cx.measureText((l1?l1+' ':'')+w).width <= 130) l1 = (l1?l1+' ':'')+w;
+    else l2 = (l2?l2+' ':'')+w;
+  }
+  if (!l2){ cx.fillText(name.length>13?name.slice(0,12)+'…':name, 72, 133-yShift, 132); return; }
+  while (cx.measureText(l2).width>132 && l2.length>2) l2 = l2.slice(0,-2)+'…';
+  cx.fillText(l1, 72, 118+ (big-19) - yShift, 132);
+  cx.fillText(l2, 72, 138 - yShift, 132);
+}
+function nameScale(cfg){ return cfg.namesize==='off'?0 : cfg.namesize==='S'?0.78 : cfg.namesize==='L'?1.28 : 1; }
+
+// 3-zone color by fill fraction (0..1): green / orange / red
+function zoneColor(p){
+  if (p >= 0.5) return '#39d98a';
+  if (p >= 0.2) return '#ffb04a';
+  return '#ff5a52';
+}
+function outlineText(txt, x, y, size){
+  cx.textAlign='center'; cx.font='700 '+size+'px "Segoe UI",Arial,sans-serif';
+  cx.lineWidth=4; cx.strokeStyle='rgba(0,0,0,0.55)'; cx.strokeText(txt, x, y);
+  cx.fillStyle='#ffffff'; cx.fillText(txt, x, y);
+}
+function drawBattery(context, cfg, num){
+  drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, null);
+  const p = isNaN(num) ? 0 : Math.max(0, Math.min(100, num)) / 100;
+  const col = zoneColor(p);
+  const nameOn = nameScale(cfg) !== 0;
+  const pct = isNaN(num) ? '—' : Math.round(num) + '%';
+  if (cfg.batorient === 'v'){
+    // standing / vertical battery
+    const dy = nameOn ? 0 : 14;
+    roundRectPath(60, 12+dy, 24, 8, 4); cx.fillStyle = '#8aa0b4'; cx.fill();
+    roundRectPath(42, 20+dy, 60, 74, 11); cx.fillStyle = '#0e141b'; cx.fill();
+    cx.lineWidth = 3; roundRectPath(42, 20+dy, 60, 74, 11); cx.strokeStyle = '#8aa0b4'; cx.stroke();
+    const iB = 89+dy, iT = 25+dy, fh = Math.max(0, (iB-iT) * p);
+    if (fh > 0){ roundRectPath(47, iB-fh, 50, fh, 6); cx.fillStyle = col; cx.fill(); }
+    outlineText(pct, 72, 64+dy, 24);
+  } else {
+    // lying / horizontal battery (default)
+    const cyc = nameOn ? 58 : 74;
+    const bx = 20, bw = 94, bh = 46, by = cyc - bh/2;
+    roundRectPath(bx+bw, by + bh/2 - 10, 8, 20, 3); cx.fillStyle = '#8aa0b4'; cx.fill();
+    roundRectPath(bx, by, bw, bh, 11); cx.fillStyle = '#0e141b'; cx.fill();
+    cx.lineWidth = 3; roundRectPath(bx, by, bw, bh, 11); cx.strokeStyle = '#8aa0b4'; cx.stroke();
+    const pad = 5, fw = (bw - pad*2) * p;
+    if (fw > 0){ roundRectPath(bx+pad, by+pad, Math.max(6, fw), bh-pad*2, 6); cx.fillStyle = col; cx.fill(); }
+    outlineText(pct, bx + bw/2, cyc + 8, 24);
+  }
+  bottomName(cfg.title || 'Batterie', nameScale(cfg));
+  push(context);
+}
+function drawBar(context, cfg, num){
+  drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, null);
+  const p = isNaN(num) ? 0 : Math.max(0, Math.min(100, num)) / 100;
+  const col = zoneColor(p);
+  outlineText(isNaN(num) ? '—' : Math.round(num) + '%', 72, 58, 30);
+  roundRectPath(18, 74, 108, 22, 11); cx.fillStyle = '#0e141b'; cx.fill();
+  const w = Math.max(0, 108 * p);
+  if (w > 0){ roundRectPath(18, 74, Math.max(14, w), 22, 11); cx.fillStyle = col; cx.fill(); }
+  bottomName(cfg.title || (cfg.entity||''), nameScale(cfg));
+  push(context);
+}
+function lightColor(st){
+  if (st && st.attributes && Array.isArray(st.attributes.rgb_color)){
+    const c = st.attributes.rgb_color; return 'rgb('+c[0]+','+c[1]+','+c[2]+')';
+  }
+  return '#ffd257';
+}
+function hexPath(cx0, cy, r){
+  cx.beginPath();
+  for (let i=0;i<6;i++){ const a=Math.PI/180*(60*i-90); const x=cx0+r*Math.cos(a), y=cy+r*Math.sin(a); i?cx.lineTo(x,y):cx.moveTo(x,y); }
+  cx.closePath();
+}
+function lightLabel(cfg, st, on){
+  const mode = cfg.lightlabel || '';
+  if (mode==='none') return '';
+  const bri = (st && st.attributes && st.attributes.brightness!=null) ? Math.round(st.attributes.brightness/255*100)+'%' : null;
+  if (mode==='onoff') return on ? 'AN' : 'AUS';
+  if (mode==='brightness') return on ? (bri||'AN') : 'AUS';
+  return on ? (bri||'AN') : 'AUS';   // auto
+}
+function drawClimate(context, cfg, st){
+  const a = (st && st.attributes) || {};
+  const cur = a.current_temperature;
+  const target = a.temperature;
+  const action = a.hvac_action || (st ? st.state : '');
+  const off = st && st.state==='off';
+  const heating = !off && (action==='heating' || (st && st.state==='heat' && action!=='idle'));
+  const cooling = !off && (action==='cooling' || (st && st.state==='cool'));
+  const modeCol = heating ? '#ff9a5a' : (cooling ? '#6ab8ff' : '#9fb3c8');
+  const glow = heating ? '#ff8a4a' : (cooling ? '#4aa8ff' : null);   // mode is shown purely via the border glow
+  drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, glow);
+  const nameOn = nameScale(cfg)!==0;
+  // setpoint: small, top-right
+  if (target!=null && !off){
+    cx.textAlign='right'; cx.fillStyle=modeCol; cx.font='700 16px "Segoe UI",Arial,sans-serif';
+    cx.fillText('→'+(Math.round(target*10)/10)+'°', 132, 28);
+  }
+  // +/- control badge: top-left (only on warmer/cooler tiles)
+  if (cfg.climatepress==='warmer' || cfg.climatepress==='cooler'){
+    const warm = cfg.climatepress==='warmer';
+    cx.fillStyle = warm ? '#ff8a4a' : '#4aa8ff';
+    cx.beginPath(); cx.arc(24, 26, 14, 0, Math.PI*2); cx.fill();
+    cx.fillStyle='#fff'; cx.textAlign='center'; cx.font='700 24px "Segoe UI",Arial,sans-serif'; cx.fillText(warm?'+':'−', 24, 34);
+  }
+  // current temperature — the hero, big and centred
+  cx.textAlign='center'; cx.fillStyle = off ? '#8ea3b8' : '#ffffff';
+  cx.font='700 50px "Segoe UI",Arial,sans-serif';
+  cx.fillText(cur!=null ? (Math.round(cur*10)/10)+'°' : (off ? (LANG==='de'?'Aus':'Off') : '—'), 72, nameOn ? 84 : 92, 138);
+  bottomName(cfg.title || a.friendly_name || cfg.entity || '', nameScale(cfg));
+  push(context);
+}
+function drawLight(context, cfg, st){
+  const on = st && st.state === 'on';
+  const isRealLight = (cfg.entity||'').split('.')[0]==='light';   // only real lights have a colour / should "glow"
+  const style = isRealLight ? (cfg.lightstyle || 'bulb') : 'icon';   // switches/fans/etc: HA icon only, no bulb
+  const useAccent = cfg.oncolor==='accent';                       // "Aktiv-Farbe" colours the whole tile when on
+  const realCol = on ? (isRealLight ? lightColor(st) : '#e8eef5') : '#5b6b7a';   // no fake light colour for non-lights
+  if (on && useAccent){ const a = accent(); drawBg(a.top, a.bot, a.glow); }
+  else drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, null);          // no border ring – glow comes from the shape's shadow
+  const col = (on && useAccent) ? '#ffffff' : realCol;           // on accent bg the icon stays white/visible
+  const dy = nameScale(cfg)===0 ? 8 : 0;
+  cx.save();
+  if (on && (isRealLight || useAccent)){ cx.shadowColor = col; cx.shadowBlur = 20; }   // only real lights emit light
+  cx.fillStyle = col; cx.strokeStyle = col;
+  if (style==='strip'){
+    roundRectPath(22, 46+dy, 100, 26, 13); cx.fill();
+  } else if (style==='hexagon'){
+    hexPath(72, 56+dy, 34); cx.fill();
+  } else if (style==='ring'){
+    cx.lineWidth = 15; cx.beginPath(); cx.arc(72, 56+dy, 28, 0, Math.PI*2); cx.stroke();
+  } else if (style==='icon'){
+    const ig = iconGlyph(cfg, st);   // real HA MDI icon (washing machine, fan …)
+    if (ig){ cx.textAlign='center'; cx.fillStyle=col; cx.font = 60 + 'px ' + (ig.mdi ? '"MDI"' : '"Segoe UI Symbol","Segoe UI",Arial'); cx.fillText(ig.ch, 72, (ig.mdi?70:62)+dy); }
+  } else {
+    cx.beginPath(); cx.arc(72, 48+dy, 25, 0, Math.PI*2); cx.fill();
+    cx.shadowBlur = 0;
+    cx.fillStyle = on?'#b98f2e':'#3f4b58'; roundRectPath(61, 68+dy, 22, 14, 3); cx.fill();
+    cx.fillStyle = on?'#a07d26':'#333d46'; cx.fillRect(64, 82+dy, 16, 3);
+  }
+  cx.restore();
+  const lbl = lightLabel(cfg, st, on);
+  if (lbl){ const ly = ({bulb:56, strip:67, hexagon:64, ring:64}[style]||56) + dy; outlineText(lbl, 72, ly, 20); }
+  bottomName(cfg.title || (st && st.attributes && st.attributes.friendly_name) || cfg.entity || '', nameScale(cfg));
+  push(context);
+}
+function drawLock(context, cfg, st){
+  const state = st ? st.state : '';
+  const locked = state==='locked' || state==='locking';
+  const jammed = state==='jammed';
+  const unavail = !st || state==='' || state==='unavailable' || state==='unknown';
+  const hint = LOCKHINT[context] || null;               // 'again' / 'hold' while confirming
+  const useAccent = cfg.lockoncolor==='accent';         // global active colour for the "locked" state
+  const bgAccent = (state==='locked' && useAccent && !hint);   // fill whole tile with accent when locked
+  let glow = null;
+  if (hint) glow = '#ffb04a';                            // confirm pending → orange attention ring
+  else if (jammed) glow = '#ff5a52';
+  else if (state==='unlocked' || state==='open' || state==='unlocking') glow = '#ffb04a';
+  else if (state==='locked') glow = useAccent ? accent().glow : '#57e08e';
+  if (bgAccent){ const a = accent(); drawBg(a.top, a.bot, a.glow); }
+  else drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, glow);
+  // like the light tiles: icon + name carry the state; spell out a word only for exceptional cases
+  const nameOn = nameScale(cfg)!==0;
+  const special = jammed || unavail || !!hint;
+  const showLabel = special || !nameOn;
+  // closed padlock when locked/locking, open padlock otherwise; alert glyph when jammed
+  const iconName = jammed ? 'lock-alert' : (locked ? 'lock' : 'lock-open-variant');
+  const col = bgAccent ? '#ffffff' : (unavail ? '#8391a1' : (jammed ? '#ff9a90' : (locked ? '#f2f7fd' : '#ffd39a')));
+  const iconBaseline = showLabel ? (nameOn ? 74 : 86) : 90;   // sit higher when a word is shown below
+  cx.save();
+  // soft depth: dark emboss on the accent fill, coloured glow otherwise
+  cx.shadowColor  = bgAccent ? 'rgba(0,0,0,0.40)' : (glow || 'rgba(0,0,0,0.45)');
+  cx.shadowBlur   = bgAccent ? 10 : (glow ? 16 : 8);
+  cx.shadowOffsetY = bgAccent ? 2 : 0;
+  const cp = window.MDI && window.MDI[iconName];
+  if (cp){ cx.fillStyle=col; cx.textAlign='center'; cx.font='80px "MDI"'; cx.fillText(String.fromCodePoint(parseInt(cp,16)), 72, iconBaseline); }
+  else glyphSym(locked?'🔒':'🔓', iconBaseline-10, 66, col);   // fallback if the MDI glyph is missing
+  cx.restore();
+  if (showLabel){
+    let lbl;
+    if (hint==='again') lbl = (LANG==='de' ? 'Nochmal!' : 'Again!');
+    else if (hint==='hold') lbl = (LANG==='de' ? 'Halten…' : 'Hold…');
+    else lbl = localState(unavail ? 'unavailable' : state);
+    if (lbl) outlineText(lbl, 72, nameOn ? 104 : 120, 17);
+  }
+  bottomName(cfg.title || (st && st.attributes && st.attributes.friendly_name) || cfg.entity || '', nameScale(cfg));
+  push(context);
+}
+function drawVacuum(context, cfg, st){
+  const state = st ? st.state : '';
+  const a = (st && st.attributes) || {};
+  const err = state==='error';
+  const cleaning = state==='cleaning';
+  const returning = state==='returning' || state==='returning_home';
+  let glow = null;
+  if (err) glow = '#ff5a52';
+  else if (cleaning) glow = accent().glow;
+  else if (returning) glow = '#ffb04a';
+  drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, glow);
+  const dy = nameScale(cfg)===0 ? 8 : 0;
+  const iconName = err ? 'robot-vacuum-alert' : 'robot-vacuum';
+  const col = err ? '#ff9a90' : (cleaning ? '#ffffff' : (returning ? '#ffd39a' : '#cdd8e4'));
+  cx.save();
+  if (glow){ cx.shadowColor = glow; cx.shadowBlur = 14; }
+  const cp = window.MDI && window.MDI[iconName];
+  if (cp){ cx.fillStyle=col; cx.textAlign='center'; cx.font='64px "MDI"'; cx.fillText(String.fromCodePoint(parseInt(cp,16)), 72, 62+dy); }
+  else glyphSym('■', 62+dy, 54, col);
+  cx.restore();
+  let lbl = localState(state);
+  const bat = a.battery_level;
+  if (bat!=null) lbl += ' · ' + Math.round(bat) + '%';
+  outlineText(lbl, 72, 96+dy, 16);
+  bottomName(cfg.title || a.friendly_name || cfg.entity || '', nameScale(cfg));
+  push(context);
+}
+function drawCamera(context, cfg){
+  const img = CAMIMG[context];
+  const nameOn = nameScale(cfg)!==0;
+  if (img && img.naturalWidth>0) drawImageFill(img, nameOn);
+  else {
+    drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, null);
+    const cp = window.MDI && window.MDI['cctv'];
+    if (cp){ cx.fillStyle='#7f8ea0'; cx.textAlign='center'; cx.font='58px "MDI"'; cx.fillText(String.fromCodePoint(parseInt(cp,16)), 72, 86); }
+  }
+  const st = stateFor(cfg);
+  bottomName(cfg.title || (st && st.attributes && st.attributes.friendly_name) || cfg.entity || '', nameScale(cfg));
+  push(context);
+}
+function drawAction(context, cfg, st){
+  const flashing = ACTFLASH[context] && (Date.now() - ACTFLASH[context] < 350);
+  if (flashing){ const ac = accent(); drawBg(ac.top, ac.bot, ac.glow); }
+  else drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, null);
+  const dom = (cfg.entity||'').split('.')[0];
+  let ig = iconGlyph(cfg, st);                       // use the entity's own icon when it has one
+  if (!ig){
+    const def = { script:'script-text-play', button:'gesture-tap-button', input_button:'gesture-tap-button', scene:'palette', automation:'robot' }[dom] || 'play-circle';
+    const cp = window.MDI && window.MDI[def];
+    if (cp) ig = { ch:String.fromCodePoint(parseInt(cp,16)), mdi:true };
+  }
+  const dy = nameScale(cfg)===0 ? 10 : 0;
+  if (ig){
+    cx.fillStyle = flashing ? '#ffffff' : '#dbe5f0'; cx.textAlign='center';
+    cx.font = (ig.mdi?58:52) + 'px ' + (ig.mdi ? '"MDI"' : '"Segoe UI Symbol","Segoe UI",Arial,sans-serif');
+    cx.fillText(ig.ch, 72, (ig.mdi?70:64)+dy);
+  }
+  bottomName(cfg.title || (st && st.attributes && st.attributes.friendly_name) || cfg.entity || '', nameScale(cfg));
+  push(context);
+}
+// resolve the right service for an "action" tile from the entity's domain
+function runAction(cfg){
+  const id = cfg.entity || ''; const dom = id.split('.')[0];
+  if (dom==='button' || dom==='input_button') haCall(cfg, dom, 'press', id);
+  else if (dom==='scene') haCall(cfg,'scene','turn_on', id);
+  else if (dom==='automation') haCall(cfg,'automation','trigger', id);
+  else if (dom==='script'){ const obj = id.split('.')[1]; if (obj) haCall(cfg,'script',obj, null); }   // script.<id> service
+  else if (id) haCall(cfg,'homeassistant','turn_on', id);
+}
+const WEATHER_ICON = {
+  'clear-night':'weather-night', 'cloudy':'weather-cloudy', 'fog':'weather-fog', 'hail':'weather-hail',
+  'lightning':'weather-lightning', 'lightning-rainy':'weather-lightning-rainy', 'partlycloudy':'weather-partly-cloudy',
+  'pouring':'weather-pouring', 'rainy':'weather-rainy', 'snowy':'weather-snowy', 'snowy-rainy':'weather-snowy-rainy',
+  'sunny':'weather-sunny', 'windy':'weather-windy', 'windy-variant':'weather-windy-variant', 'exceptional':'weather-cloudy-alert'
+};
+function drawWeather(context, cfg, st){
+  const cond = st ? st.state : '';
+  const a = (st && st.attributes) || {};
+  drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, null);
+  const dy = nameScale(cfg)===0 ? 8 : 0;
+  const iconName = WEATHER_ICON[cond] || 'weather-cloudy';
+  const tint = cond==='sunny' ? '#ffd257' : (cond==='clear-night' ? '#cdd6ff' : '#dbe7f2');
+  cx.save(); cx.shadowColor='rgba(0,0,0,0.4)'; cx.shadowBlur=6;
+  const cp = window.MDI && window.MDI[iconName];
+  if (cp){ cx.fillStyle=tint; cx.textAlign='center'; cx.font='58px "MDI"'; cx.fillText(String.fromCodePoint(parseInt(cp,16)), 72, 58+dy); }
+  cx.restore();
+  const t = a.temperature;
+  if (t!=null) outlineText((Math.round(t*10)/10)+'°', 72, 100+dy, 30);
+  else outlineText(localState(cond), 72, 100+dy, 18);
+  bottomName(cfg.title || a.friendly_name || cfg.entity || '', nameScale(cfg));
+  push(context);
+}
+function drawPresence(context, cfg, st){
+  const state = st ? st.state : '';
+  const a = (st && st.attributes) || {};
+  const home = state==='home';
+  const glow = home ? accent().glow : null;
+  drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, glow);
+  const dy = nameScale(cfg)===0 ? 8 : 0;
+  const iconName = home ? 'home-account' : 'walk';
+  const col = home ? '#ffffff' : '#9aa7b4';
+  cx.save(); if (glow){ cx.shadowColor=glow; cx.shadowBlur=14; }
+  const cp = window.MDI && window.MDI[iconName];
+  if (cp){ cx.fillStyle=col; cx.textAlign='center'; cx.font='58px "MDI"'; cx.fillText(String.fromCodePoint(parseInt(cp,16)), 72, 60+dy); }
+  cx.restore();
+  const word = (state==='home' || state==='not_home') ? localState(state) : (state ? state.charAt(0).toUpperCase()+state.slice(1) : '—');
+  outlineText(word, 72, 96+dy, 16);
+  bottomName(cfg.title || a.friendly_name || cfg.entity || '', nameScale(cfg));
+  push(context);
+}
+function drawCover(context, cfg, st){
+  const state = st ? st.state : '';
+  const a = (st && st.attributes) || {};
+  const pos = a.current_position;                 // 0 = closed, 100 = open (if the cover reports it)
+  const closed = state==='closed' || pos===0;
+  const moving = state==='opening' || state==='closing';
+  drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, moving ? '#ffb04a' : null);
+  const dy = nameScale(cfg)===0 ? 8 : 0;
+  const iconName = closed ? 'window-shutter' : 'window-shutter-open';
+  const col = closed ? '#9fb3c8' : '#dbe7f2';
+  cx.save(); cx.shadowColor='rgba(0,0,0,0.4)'; cx.shadowBlur=6;
+  const cp = window.MDI && window.MDI[iconName];
+  if (cp){ cx.fillStyle=col; cx.textAlign='center'; cx.font='60px "MDI"'; cx.fillText(String.fromCodePoint(parseInt(cp,16)), 72, 62+dy); }
+  cx.restore();
+  let lbl = (!moving && pos!=null && !isNaN(pos)) ? Math.round(pos)+'%' : localState(state);
+  outlineText(lbl, 72, 96+dy, 16);
+  bottomName(cfg.title || a.friendly_name || cfg.entity || '', nameScale(cfg));
+  push(context);
+}
+function haReady(cfg){ const c = haConns[haKey(U(cfg), T(cfg))]; return !!(c && c.ready); }
+function drawOfflineDot(){        // "marker rechts unten": HA connection lost
+  cx.save();
+  cx.beginPath(); cx.arc(125,125,7,0,Math.PI*2);
+  cx.shadowColor='rgba(0,0,0,0.7)'; cx.shadowBlur=4;
+  cx.fillStyle='#ff4d4d'; cx.fill();
+  cx.restore();
+}
+function push(context){
+  const info = ctxInfo[context];
+  if (info && info.settings && (U(info.settings)||GLOBAL.url) && !haReady(info.settings)) drawOfflineDot();
+  let img; try { img = cv.toDataURL('image/png'); } catch(e){ return; }
+  sdSend({ event:'setImage', context, payload:{ image: img, target:0 } });
+}
+// monochrome symbols that reliably render on canvas
+function autoIcon(cfg, st){
+  if (cfg.icon==='NONE') return '';
+  if (cfg.icon) return cfg.icon;
+  const id = (cfg.entity||'').toLowerCase();
+  if (id.indexOf('mail')>=0 || id.indexOf('imap')>=0) return '✉';     // envelope
+  const dc = st && st.attributes && st.attributes.device_class;
+  if (dc==='temperature' || id.indexOf('temperat')>=0) return '☀';    // sun-ish
+  return '';
+}
+// generic per-domain MDI fallback for toggleable entities without their own icon
+const DOMAIN_ICON = {
+  switch:        on => on ? 'toggle-switch-variant' : 'toggle-switch-variant-off',
+  input_boolean: on => on ? 'toggle-switch-variant' : 'toggle-switch-variant-off',
+  light:         on => on ? 'lightbulb' : 'lightbulb-outline',
+  fan:           () => 'fan',
+  lock:          on => on ? 'lock-open-variant' : 'lock',
+  cover:         () => 'window-shutter',
+  humidifier:    () => 'air-humidifier',
+  siren:         () => 'bullhorn'
+};
+// resolve the icon: user override → real HA MDI icon → per-domain fallback → simple fallback
+function iconGlyph(cfg, st){
+  if (cfg.icon==='NONE') return null;
+  if (cfg.icon) return { ch: cfg.icon, mdi:false };
+  const ic = st && st.attributes && st.attributes.icon;   // e.g. "mdi:thermometer"
+  if (ic && ic.indexOf('mdi:')===0 && window.MDI){
+    const cp = window.MDI[ic.slice(4)];
+    if (cp) return { ch: String.fromCodePoint(parseInt(cp,16)), mdi:true };
+  }
+  const dom = (cfg.entity||'').split('.')[0];
+  const fb = DOMAIN_ICON[dom];
+  if (fb && window.MDI){
+    const on = st && (st.state==='on' || st.state==='open' || st.state==='unlocked');
+    const cp = window.MDI[fb(on)];
+    if (cp) return { ch: String.fromCodePoint(parseInt(cp,16)), mdi:true };
+  }
+  const f = autoIcon(cfg, st);
+  return f ? { ch:f, mdi:false } : null;
+}
+function drawIconGlyph(ig, y, size){
+  cx.fillStyle='#fff'; cx.textAlign='center';
+  cx.font = size + 'px ' + (ig.mdi ? '"MDI"' : '"Segoe UI Symbol","Segoe UI",Arial,sans-serif');
+  cx.fillText(ig.ch, 72, y);
+}
+
+// ---- ENTITY action ----
+const PALETTE = {
+  normal:{ top:'#33414f', bot:'#161d25', glow:null },
+  red:   { top:'#c0392b', bot:'#7a1a11', glow:null },
+  orange:{ top:'#cf821c', bot:'#864c07', glow:null },
+  yellow:{ top:'#d8c23a', bot:'#8f7d0c', glow:'#ffe98a' },
+  green: { top:'#2ec26a', bot:'#177a41', glow:'#57e08e' },
+  blue:  { top:'#4a86e8', bot:'#244a86', glow:'#7aa9ff' },
+  purple:{ top:'#a479e2', bot:'#5f3e9b', glow:'#c8a6ff' }
+};
+function drawEntity(context, cfg){
+  const st = stateFor(cfg);
+  const raw = st ? st.state : '—';
+  const num = parseFloat(raw);
+  if (cfg.display==='battery'){ drawBattery(context, cfg, num); return; }
+  if (cfg.display==='bar'){ drawBar(context, cfg, num); return; }
+  if (cfg.display==='light'){ drawLight(context, cfg, st); return; }
+  if (cfg.display==='lock'){ drawLock(context, cfg, st); return; }
+  if (cfg.display==='vacuum'){ drawVacuum(context, cfg, st); return; }
+  if (cfg.display==='camera'){ drawCamera(context, cfg); return; }
+  if (cfg.display==='action'){ drawAction(context, cfg, st); return; }
+  if (cfg.display==='weather'){ drawWeather(context, cfg, st); return; }
+  if (cfg.display==='presence'){ drawPresence(context, cfg, st); return; }
+  if (cfg.display==='cover'){ drawCover(context, cfg, st); return; }
+  if (cfg.display==='climate'){ drawClimate(context, cfg, st); return; }
+  const w1 = (cfg.warn!=='' && cfg.warn!=null) ? parseFloat(cfg.warn) : NaN;
+  const w2 = (cfg.warn2!=='' && cfg.warn2!=null) ? parseFloat(cfg.warn2) : NaN;
+  let pal = { top: bgTheme(cfg).top, bot: bgTheme(cfg).bot, glow: null };
+  if (!isNaN(num)){
+    if (!isNaN(w2) && num >= w2) pal = PALETTE[cfg.color2||'red'] || PALETTE.red;
+    else if (!isNaN(w1) && num >= w1) pal = PALETTE[cfg.color1||'orange'] || PALETTE.orange;
+  }
+  drawBg(pal.top, pal.bot, pal.glow);
+  let val;
+  if (isNaN(num)){ val = localState(raw); }                        // text states → localized (An/Aus/Heizen …)
+  else {
+    val = raw;
+    const unit = st && st.attributes && st.attributes.unit_of_measurement;
+    if (unit && unit.length<=3) val = raw + unit;                  // keep %, °C, W, kWh – drop word-units
+  }
+  const dyc = nameScale(cfg)===0 ? 14 : 0;   // no name → drop content to vertically center it
+  const ig = iconGlyph(cfg, st);
+  if (ig){
+    drawIconGlyph(ig, (ig.mdi ? 64 : 56) + dyc, 54);
+    cx.fillStyle='#fff'; cx.textAlign='center';
+    cx.font = '700 ' + (val.length>5?28:40) + 'px "Segoe UI",Arial,sans-serif';
+    cx.fillText(val, 72, 100 + dyc, 130);
+  } else {
+    cx.fillStyle='#fff'; cx.textAlign='center';
+    cx.font = '700 ' + (val.length>4?42:58) + 'px "Segoe UI",Arial,sans-serif';
+    cx.fillText(val, 72, 84 + (nameScale(cfg)===0?12:0), 130);
+  }
+  bottomName(cfg.title || (st && st.attributes && st.attributes.friendly_name) || cfg.entity || '', nameScale(cfg));
+  push(context);
+}
+
+// ---- MEDIA action ----
+const GLYPH = { playpause:'▶', next:'⏭', prev:'⏮', volup:'▲', voldown:'▼', play:'♪', stop:'■' };
+const MA_TYPE_ICON = { playlist:'playlist-music', radio:'radio', album:'album', artist:'account-music', track:'music-note', podcast:'podcast', audiobook:'book-music' };
+function drawProgress(st, y, h){
+  const a = (st && st.attributes) || {};
+  const dur = +a.media_duration;
+  if (!(dur > 0)) return;
+  let pos = +a.media_position || 0;
+  if (st.state==='playing' && a.media_position_updated_at){         // advance smoothly between HA updates
+    const t = Date.parse(a.media_position_updated_at);
+    if (!isNaN(t)) pos += Math.max(0, (Date.now()-t)/1000);
+  }
+  const fr = Math.max(0, Math.min(1, pos/dur));
+  roundRectPath(14, y, 116, h, h/2); cx.fillStyle='rgba(0,0,0,0.30)'; cx.fill();     // dark track – visible on any bg
+  if (fr > 0){ roundRectPath(14, y, Math.max(h, 116*fr), h, h/2); cx.fillStyle='#ffffff'; cx.fill(); }
+}
+function drawEqBars(cxCenter, cyBottom, col, frame){
+  cx.fillStyle = col; const n=4, w=4, gap=3, base=[9,14,6,11];
+  const total = n*w + (n-1)*gap; let bx = cxCenter - total/2;
+  for(let i=0;i<n;i++){
+    const h = (frame==null) ? base[i] : Math.round(4 + 11*Math.abs(Math.sin(frame*0.5 + i*1.2)));
+    cx.fillRect(bx, cyBottom-h, w, h); bx += w+gap;
+  }
+}
+const IMG = {};   // album-cover cache: url -> Image (crossOrigin so the canvas stays exportable)
+function getCover(url){
+  if (!url) return null;
+  let e = IMG[url];
+  if (!e){ e = new Image(); e.crossOrigin='anonymous'; e._err=false; e.onload=()=>renderAll(); e.onerror=()=>{ e._err=true; }; e.src=url; IMG[url]=e; }
+  return (e.complete && e.naturalWidth>0 && !e._err) ? e : null;
+}
+function drawCoverBg(img){
+  cx.clearRect(0,0,144,144);
+  cx.save(); roundRectPath(4,4,136,136,20); cx.clip();
+  const s = Math.max(136/img.naturalWidth, 136/img.naturalHeight);
+  const w = img.naturalWidth*s, h = img.naturalHeight*s;
+  cx.drawImage(img, 72-w/2, 72-h/2, w, h);
+  cx.fillStyle = 'rgba(0,0,0,0.48)'; cx.fillRect(4,4,136,136);   // dim so text stays readable
+  cx.restore();
+}
+// like drawCoverBg but only a bottom gradient (keep the picture bright – for cameras)
+function drawImageFill(img, nameOn){
+  cx.clearRect(0,0,144,144);
+  cx.save(); roundRectPath(4,4,136,136,20); cx.clip();
+  const s = Math.max(136/img.naturalWidth, 136/img.naturalHeight);
+  const w = img.naturalWidth*s, h = img.naturalHeight*s;
+  cx.drawImage(img, 72-w/2, 72-h/2, w, h);
+  if (nameOn){ const g = cx.createLinearGradient(0,96,0,140); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.74)'); cx.fillStyle=g; cx.fillRect(4,96,136,44); }
+  cx.restore();
+}
+function drawMedia(context, cfg){
+  const st = stateFor(cfg);
+  const playing = st && st.state === 'playing';
+  const role = cfg.role || 'playpause';
+  const pic = st && st.attributes && st.attributes.entity_picture;
+  const cover = (cfg.cover==='1' || (cfg.cover==='2' && playing)) ? getCover(pic) : null;   // '2' = only while playing
+  if (role === 'nowplaying'){
+    if (cover) drawCoverBg(cover);
+    else drawBg(bgTheme(cfg).top, bgTheme(cfg).bot, playing?accent().glow:null);
+    cx.textAlign = 'center';
+    const title = (st && st.attributes && st.attributes.media_title) || (playing ? '' : '—');
+    const artist = (st && st.attributes && st.attributes.media_artist) || '';
+    let fs = 19; cx.fillStyle = '#fff'; cx.font = '700 '+fs+'px "Segoe UI",Arial,sans-serif';
+    let lines = wrapText(title, 132);
+    if (lines.length > 3){ fs = 15; cx.font = '700 '+fs+'px "Segoe UI",Arial,sans-serif'; lines = wrapText(title, 132); }
+    lines = lines.slice(0, 3);
+    const lh = fs + 5;
+    let y = (artist ? 50 : 74) - (lines.length*lh)/2 + lh - 5;
+    lines.forEach(l => { cx.fillText(l, 72, y, 136); y += lh; });
+    if (artist){ cx.fillStyle = '#c9dbec'; cx.font = '600 13px "Segoe UI",Arial'; cx.fillText(artist.length>22?artist.slice(0,21)+'…':artist, 72, 124, 136); }
+    // progress bar
+    if (cfg.hideprogress !== '1') drawProgress(st, 136, 5);
+    push(context); return;
+  }
+  // a "play" tile is ACTIVE when its content runs. radio/track are verifiable by content_id;
+  // playlist/album/artist expand into tracks (content_id can't match) → fall back to "last started from deck".
+  const cid = st && st.attributes && st.attributes.media_content_id;
+  const verifiable = (cfg.ma_type==='radio' || cfg.ma_type==='track');
+  const cidMatch = cid && cid === cfg.ma_media;
+  const startedMatch = !verifiable && cfg.entity && STARTED[cfg.entity] === cfg.ma_media;
+  const active = !!(cfg.ma_media && playing && (cidMatch || startedMatch));
+  const hot = (role==='play') ? active : playing;
+  if (cover) drawCoverBg(cover);
+  else { const th = bgTheme(cfg), a = accent(); drawBg(hot?a.top:th.top, hot?a.bot:th.bot, hot?a.glow:null); }
+  const gcol = cover ? 'rgba(255,255,255,0.92)' : '#ffffff';   // on a cover: dezent glyph + shadow for legibility
+  if (cover){ cx.save(); cx.shadowColor='rgba(0,0,0,0.6)'; cx.shadowBlur=8; }
+  if (role==='volup' || role==='voldown'){
+    drawSpeaker(66, 76, role==='volup');
+  } else if (role==='play'){
+    const nm = nameScale(cfg)!==0;                       // lift icon up when a label is shown
+    const iy = nm ? 80 : 92;
+    if (cfg.hideicon !== '1'){
+      const mdiName = MA_TYPE_ICON[cfg.ma_type||'playlist'] || 'music-note';
+      const cp = window.MDI && window.MDI[mdiName];
+      if (cover){                                        // over cover: small corner badge only
+        if (cp){ cx.fillStyle=gcol; cx.textAlign='left'; cx.font='30px "MDI"'; cx.fillText(String.fromCodePoint(parseInt(cp,16)), 12, 38); cx.textAlign='center'; }
+      } else if (cp){ cx.fillStyle=gcol; cx.textAlign='center'; cx.font='68px "MDI"'; cx.fillText(String.fromCodePoint(parseInt(cp,16)), 72, iy+3); }
+      else glyphSym('♪', iy, 66, gcol);
+    }
+    if (active) drawEqBars(72, 26, '#ffffff', ANIM);     // animated "now playing" equalizer badge
+  } else if (role === 'playpause'){
+    if (!playing) glyphSym('▶', 90, cover?72:66, gcol);   // paused/idle → prominent ▶ "press to play"
+    else {                                                 // playing → small dezent ⏸ hint in the corner
+      cx.textAlign='left'; cx.font='700 30px "Segoe UI Symbol","Segoe UI",Arial,sans-serif';
+      cx.fillStyle='rgba(255,255,255,0.85)'; cx.fillText('⏸', 12, 38); cx.textAlign='center';
+    }
+  } else {
+    const glyph = GLYPH[role];
+    if (cover){                                          // next/prev/stop over cover → subtle corner
+      cx.textAlign='left'; cx.font='700 26px "Segoe UI Symbol","Segoe UI",Arial'; cx.fillStyle=gcol;
+      cx.fillText(glyph, 12, 36); cx.textAlign='center';
+    } else glyphSym(glyph, 92, 66, gcol);
+  }
+  if (cover) cx.restore();
+  let label = cfg.title || '';
+  if (!label){
+    if (role==='playpause' && st && st.attributes && st.attributes.media_title) label = st.attributes.media_title;
+    else if (role==='play') label = cfg.ma_name || ({playlist:'Playlist',radio:'Radio',album:'Album',artist:'Interpret',track:'Track'}[cfg.ma_type] || 'Wiedergabe');
+    // next/prev/vol/stop: the symbol says it all – no default name unless the user sets a title
+  }
+  // progress only where it belongs: playpause (reflects the player) or a play tile that is itself active
+  const showProg = ((role==='playpause') || (role==='play' && active)) && playing && cfg.hideprogress!=='1'
+                   && st && st.attributes && (+st.attributes.media_duration) > 0;
+  bottomName(label, nameScale(cfg), (role==='play'?10:0) + (showProg?11:0));   // raise text so the bar has room
+  if (showProg) drawProgress(st, 133, 5);
+  push(context);
+}
+
+function draw(context){
+  const info = ctxInfo[context]; if (!info) return;
+  if (info.action === 'com.hoizi.homeassistant.media') drawMedia(context, info.settings);
+  else drawEntity(context, info.settings);
+}
+function renderAll(){ Object.keys(ctxInfo).forEach(draw); }
+function renderForEntity(entity){
+  Object.keys(ctxInfo).forEach(ctx => {
+    const i = ctxInfo[ctx];
+    if (i.settings.entity !== entity) return;
+    if (i.settings.display==='camera') refreshCam(ctx, i.settings);   // pull a fresh frame (token may have rotated)
+    else draw(ctx);
+  });
+}
+
+// ---- scene helpers (scenecycle press mode) ----
+function sceneList(cfg){ return [cfg.scene,cfg.scene2,cfg.scene3,cfg.scene4].filter(Boolean); }
+function stepScene(context, cfg){                      // advance to the next scene in the list
+  const list = sceneList(cfg); if (!list.length) return;
+  const i = ((SCENEIDX[context]==null?-1:SCENEIDX[context])+1) % list.length;
+  SCENEIDX[context] = i; haCall(cfg,'scene','turn_on',list[i]);
+}
+function toggleSceneOff(context, cfg){                 // tap: on -> off, off -> (re)activate current scene
+  const s = stateFor(cfg);
+  if (s && s.state==='on'){ haCall(cfg,'homeassistant','turn_off',cfg.entity); return; }
+  const list = sceneList(cfg); if (!list.length) return;
+  const i = SCENEIDX[context]==null ? 0 : SCENEIDX[context];
+  haCall(cfg,'scene','turn_on', list[i] || list[0]);
+}
+
+// ---- key press ----
+function onKeyDown(context){
+  const info = ctxInfo[context]; if (!info) return;
+  const cfg = info.settings;
+  if (info.action === 'com.hoizi.homeassistant.media'){
+    const role = cfg.role || 'playpause';
+    if (role==='playpause' || role==='nowplaying') haCall(cfg,'media_player','media_play_pause',cfg.entity);
+    else if (role==='next') haCall(cfg,'media_player','media_next_track',cfg.entity);
+    else if (role==='prev') haCall(cfg,'media_player','media_previous_track',cfg.entity);
+    else if (role==='volup') haCall(cfg,'media_player','volume_up',cfg.entity);
+    else if (role==='voldown') haCall(cfg,'media_player','volume_down',cfg.entity);
+    else if (role==='stop') haCall(cfg,'media_player','media_stop',cfg.entity);
+    else if (role==='play' && cfg.ma_media){
+      const st = stateFor(cfg);
+      const cid = st && st.attributes && st.attributes.media_content_id;
+      const thisActive = st && st.state==='playing' && (cid===cfg.ma_media || STARTED[cfg.entity]===cfg.ma_media);
+      if (thisActive) haCall(cfg,'media_player','media_play_pause',cfg.entity);   // THIS content is running → pause
+      else {
+        haCall(cfg,'music_assistant','play_media',cfg.entity,{ media_id:cfg.ma_media, media_type:(cfg.ma_type||'playlist') });  // else → start it
+        STARTED[cfg.entity] = cfg.ma_media; persistStarted();   // remember for playlist "active" marking
+        renderForEntity(cfg.entity);
+      }
+    }
+    return;
+  }
+  // entity action
+  if (cfg.display==='light'){
+    const lp = cfg.lightpress || 'toggle';
+    if (lp==='on') haCall(cfg,'homeassistant','turn_on',cfg.entity);
+    else if (lp==='off') haCall(cfg,'homeassistant','turn_off',cfg.entity);
+    else if (lp==='scene' && cfg.scene) haCall(cfg,'scene','turn_on',cfg.scene);
+    else if (lp==='scenetoggle'){
+      const s = stateFor(cfg);
+      if (s && s.state==='on') haCall(cfg,'homeassistant','turn_off',cfg.entity);   // on → off
+      else if (cfg.scene) haCall(cfg,'scene','turn_on',cfg.scene);                   // off → activate scene
+    }
+    else if (lp==='scenecycle'){
+      stepScene(context, cfg);                            // each press → next scene
+    }
+    else if (lp==='scenehold'){                           // tap = scene/off, hold = browse scenes
+      if (!sceneList(cfg).length) return;
+      CYCLE[context] = { stepped:false };
+      CYCLE[context].timer = setInterval(()=>{ if(!CYCLE[context]) return; CYCLE[context].stepped = true; stepScene(context, cfg); }, 800);
+    }
+    else if (cfg.entity) haCall(cfg,'homeassistant','toggle',cfg.entity);
+    return;
+  }
+  if (cfg.display==='climate'){
+    const cp = cfg.climatepress || 'none';
+    const st = stateFor(cfg);
+    const cur = st && st.attributes ? st.attributes.temperature : null;
+    if (cp==='warmer' && cur!=null) haCall(cfg,'climate','set_temperature',cfg.entity,{ temperature: Math.round((cur+0.5)*10)/10 });
+    else if (cp==='cooler' && cur!=null) haCall(cfg,'climate','set_temperature',cfg.entity,{ temperature: Math.round((cur-0.5)*10)/10 });
+    else if (cp==='toggle'){
+      if (st && st.state && st.state!=='off') haCall(cfg,'climate','turn_off',cfg.entity);
+      else haCall(cfg,'climate','turn_on',cfg.entity);
+    }
+    return;
+  }
+  if (cfg.display==='lock'){
+    const st = stateFor(cfg);
+    const state = st ? st.state : '';
+    const lp = cfg.lockpress || 'toggle';
+    let svc, risky;                                                       // "risky" = reduces security → confirmable
+    if (lp==='lock'){ svc='lock'; risky=false; }
+    else if (lp==='unlock'){ svc='unlock'; risky=true; }
+    else if (lp==='open'){ svc='open'; risky=true; }                     // latch / door release
+    else if (state==='locked' || state==='locking'){ svc='unlock'; risky=true; }   // toggle → unlock
+    else { svc='lock'; risky=false; }                                    // toggle → lock
+    const mode = cfg.lockconfirm || 'off';
+    if (!risky || mode==='off'){ haCall(cfg,'lock',svc,cfg.entity); return; }
+    if (mode==='hold'){                                                   // keep pressed ~0.7 s
+      LOCKHINT[context] = 'hold'; draw(context);
+      HOLD[context] = { fired:false };
+      HOLD[context].timer = setTimeout(()=>{
+        if (!HOLD[context]) return;
+        HOLD[context].fired = true; LOCKHINT[context] = null;
+        haCall(cfg,'lock',svc,cfg.entity); draw(context);
+      }, 700);
+      return;
+    }
+    // double-press: first press arms (shows "Nochmal!"), second within 2.5 s fires
+    const now = Date.now();
+    if (LOCKPEND[context] && (now - LOCKPEND[context] < 2500)){
+      delete LOCKPEND[context]; LOCKHINT[context] = null;
+      haCall(cfg,'lock',svc,cfg.entity); draw(context);
+    } else {
+      LOCKPEND[context] = now; LOCKHINT[context] = 'again'; draw(context);
+      setTimeout(()=>{ if (LOCKPEND[context]===now){ delete LOCKPEND[context]; LOCKHINT[context]=null; draw(context); } }, 2500);
+    }
+    return;
+  }
+  if (cfg.display==='vacuum'){
+    const vp = cfg.vacuumpress || 'toggle';
+    const st = stateFor(cfg); const state = st ? st.state : '';
+    if (vp==='start') haCall(cfg,'vacuum','start',cfg.entity);
+    else if (vp==='return') haCall(cfg,'vacuum','return_to_base',cfg.entity);
+    else if (vp==='pause') haCall(cfg,'vacuum','pause',cfg.entity);
+    else if (vp==='locate') haCall(cfg,'vacuum','locate',cfg.entity);
+    else if (state==='cleaning') haCall(cfg,'vacuum','return_to_base',cfg.entity);   // toggle: cleaning → dock
+    else haCall(cfg,'vacuum','start',cfg.entity);                                     // else → start
+    return;
+  }
+  if (cfg.display==='action'){
+    runAction(cfg);
+    ACTFLASH[context] = Date.now(); draw(context);            // brief visual feedback
+    setTimeout(()=>draw(context), 360);
+    return;
+  }
+  if (cfg.display==='cover'){
+    const cpr = cfg.coverpress || 'toggle';
+    const st = stateFor(cfg); const state = st ? st.state : '';
+    const pos = st && st.attributes ? st.attributes.current_position : null;
+    if (cpr==='open') haCall(cfg,'cover','open_cover',cfg.entity);
+    else if (cpr==='close') haCall(cfg,'cover','close_cover',cfg.entity);
+    else if (cpr==='stop') haCall(cfg,'cover','stop_cover',cfg.entity);
+    else { const isOpen = state==='open' || (pos!=null && pos>0); haCall(cfg,'cover', isOpen?'close_cover':'open_cover', cfg.entity); }
+    return;
+  }
+  const press = cfg.press || 'none';
+  if (press==='toggle' && cfg.entity) haCall(cfg,'homeassistant','toggle',cfg.entity);
+  else if (press==='gmail') sdSend({ event:'openUrl', payload:{ url:'https://mail.google.com/mail/u/0/#inbox' } });
+  else if (press==='url' && cfg.url2) sdSend({ event:'openUrl', payload:{ url:cfg.url2 } });
+  else if (press==='service' && cfg.service && cfg.service.indexOf('.')>0){
+    const [dom,svc] = cfg.service.split('.');
+    const noTarget = ['script','scene','button','input_button','automation','notify'].indexOf(dom)>=0;
+    haCall(cfg, dom, svc, noTarget ? null : cfg.entity);
+  }
+}
+
+function onKeyUp(context){
+  // lock "hold to confirm": released before the timer fired → cancel the pending action
+  const h = HOLD[context];
+  if (h){
+    if (!h.fired){ clearTimeout(h.timer); LOCKHINT[context] = null; draw(context); }
+    delete HOLD[context];
+  }
+  // scene "tap = toggle / hold = browse": a quick release (never stepped) is a tap → scene/off
+  const c = CYCLE[context];
+  if (c){
+    clearInterval(c.timer);
+    if (!c.stepped){ const info = ctxInfo[context]; if (info) toggleSceneOff(context, info.settings); }
+    delete CYCLE[context];
+  }
+}
+
+// ---- Stream Deck plumbing ----
+function sdSend(o){ if (sd && sd.readyState===1) sd.send(JSON.stringify(o)); }
+
+function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo){
+  myUUID = inUUID;
+  try { const info = JSON.parse(inInfo); LANG = (info.application && info.application.language || 'en').slice(0,2); } catch(e){}
+  if (!STATE_L[LANG]) LANG = 'en';   // only 'de' localized; others fall back to raw
+  sd = new WebSocket('ws://127.0.0.1:' + inPort);
+  sd.onopen = ()=>{
+    sd.send(JSON.stringify({ event: inRegisterEvent, uuid: inUUID }));
+    sd.send(JSON.stringify({ event:'getGlobalSettings', context: inUUID }));
+  };
+  sd.onmessage = (ev)=>{
+    let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+    const ctx = m.context;
+    const settings = (m.payload && m.payload.settings) ? m.payload.settings : {};
+    switch (m.event){
+      case 'didReceiveGlobalSettings':
+        GLOBAL = settings || {};
+        STARTED = Object.assign({}, GLOBAL.started || {});   // restore last-started map
+        if (GLOBAL.url && GLOBAL.token) connectHA(GLOBAL.url, GLOBAL.token);
+        renderAll(); break;
+      case 'willAppear':
+        ctxInfo[ctx] = { action: m.action, settings };
+        if (U(settings) && T(settings)) connectHA(U(settings), T(settings));
+        draw(ctx);
+        if (settings.display==='camera') refreshCam(ctx, settings);
+        break;
+      case 'willDisappear': delete ctxInfo[ctx]; break;
+      case 'didReceiveSettings':
+        if (ctxInfo[ctx]) ctxInfo[ctx].settings = settings;
+        else ctxInfo[ctx] = { action: m.action, settings };
+        if (U(settings) && T(settings)) connectHA(U(settings), T(settings));
+        draw(ctx);
+        if (settings.display==='camera') refreshCam(ctx, settings);
+        break;
+      case 'keyDown': onKeyDown(ctx); break;
+      case 'keyUp': onKeyUp(ctx); break;
+    }
+  };
+  // load the MDI icon font, then redraw everything so icons appear
+  if (document.fonts && document.fonts.load){ document.fonts.load('24px "MDI"').then(()=>renderAll()).catch(()=>{}); }
+}
+</script>
+</body>
+</html>

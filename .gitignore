@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+
+# Node (if tooling is added later)
+node_modules/
+*.log
+
+# Packaged plugin output
+*.streamDeckPlugin
