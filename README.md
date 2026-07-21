@@ -15,7 +15,7 @@ No build step, no add-on: the plugin talks to Home Assistant directly over its W
 Two actions, driven by a small property inspector:
 
 **HA Entity** — pick any entity, the tile picks a fitting look:
-- **Value** — state as number or text, with optional warning thresholds & colors (numeric only)
+- **Value** — state as number or text, with optional warning thresholds & colors; power/energy sensors auto-compact (W→kW→MW)
 - **Light / Switch** — bulb / strip / hexagon / ring / real HA icon, on-color or global accent, scene actions (activate, toggle, cycle, tap on/off + hold to browse)
 - **Lock** — open/closed padlock, state colors, confirm on unlock (double-press or press-&-hold)
 - **Climate** — big current temperature, small setpoint, heat/cool shown via the border glow, optional +/- control
@@ -27,7 +27,9 @@ Two actions, driven by a small property inspector:
 - **Battery** / **Bar** — 0–100 % gauges
 - **Action** — one tap runs a `script.`, `button.`, `input_button.`, `scene.` or `automation.`
 
-**HA Media / Music Assistant** — play/pause, next/prev, volume, stop, now-playing (cover art + progress + title/artist), and start Music Assistant content with an animated "now playing" badge.
+**HA Info Carousel** — a dedicated action that cycles several read-only info tiles on one key. Each slot is a full, independent config (entity, display mode, thresholds, colours, icon); a tap shows the next, with position dots at the top.
+
+**HA Media / Music Assistant** — play/pause, next/prev, volume, stop, now-playing (cover art + progress + title/artist), and start Music Assistant content with an animated "now playing" badge (single playlist or a tap/hold playlist carousel).
 
 Extras: per-key or global background theme, global "active" color, MDI icon resolution, live updates,
 and a red **offline dot** (bottom-right) when the Home Assistant connection drops.

@@ -4,7 +4,7 @@
   "Author": "hoizi",
   "Name": "Home Assistant Tiles",
   "Description": "Show and control Home Assistant on your keys: lights, switches, locks, climate, covers, vacuum, media & Music Assistant, camera snapshots, weather, presence, scenes/scripts and sensor values.",
-  "Version": "0.2.0.0",
+  "Version": "0.3.0.0",
   "URL": "https://www.home-assistant.io",
   "Icon": "icons/plugin",
   "Category": "Home Assistant Tiles",
